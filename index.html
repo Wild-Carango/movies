@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Code</title>
+    <script>
+        function redirectToMovie() {
+            // Get the user input value
+            var code = document.getElementById("codeInput").value.trim();
+            
+            // Ensure input is not empty
+            if (code === "") {
+                alert("Please enter a valid code.");
+                return;
+            }
+            
+            // Construct the new URL
+            var baseUrl = "https://vidsrc.xyz/embed/movie?tmdb=";
+            var finalUrl = baseUrl + encodeURIComponent(code);
+
+            // Redirect the user
+            window.location.href = finalUrl;
+        }
+    </script>
+</head>
+<body>
+    <h2>Enter Code</h2>
+    <input type="text" id="codeInput" placeholder="Enter Code Here">
+    <button onclick="redirectToMovie()">Go</button>
+</body>
+</html>
