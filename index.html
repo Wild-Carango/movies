@@ -5,73 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Watch Movies & TV Shows</title>
     <script>
-        function toggleFields() {
-            let type = document.getElementById("type").value;
-            let seasonField = document.getElementById("seasonField");
-            let episodeField = document.getElementById("episodeField");
+        const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b	"; // Replace with your actual API key
 
-            if (type === "movie") {
-                seasonField.style.display = "none";
-                episodeField.style.display = "none";
-            } else {
-                seasonField.style.display = "block";
-                episodeField.style.display = "block";
-            }
+        document.addEventListener("DOMContentLoaded", function () {
+            loadTheme(); // Load dark or light mode when page loads
+        });
+
+        function toggleDarkMode() {
+            let body = document.body;
+            let isDark = body.classList.toggle("dark-mode");
+            localStorage.setItem("darkMode", isDark); // Save preference
         }
 
-        function redirect() {
-            let type = document.getElementById("type").value;
-            let code = document.getElementById("code").value.trim();
-            let season = document.getElementById("season").value.trim();
-            let episode = document.getElementById("episode").value.trim();
-
-            if (code === "") {
-                alert("Please enter a valid code.");
-                return;
-            }
-
-            let url = "";
-
-            if (type === "movie") {
-                url = code.startsWith("tt") 
-                    ? `https://vidsrc.xyz/embed/movie?imdb=${code}` 
-                    : `https://vidsrc.xyz/embed/movie?tmdb=${code}`;
-            } else {
-                if (season === "" || episode === "") {
-                    alert("Please enter season and episode numbers.");
-                    return;
-                }
-                url = code.startsWith("tt") 
-                    ? `https://vidsrc.xyz/embed/tv?imdb=${code}&season=${season}&episode=${episode}` 
-                    : `https://vidsrc.xyz/embed/tv?tmdb=${code}&season=${season}&episode=${episode}`;
-            }
-
-            window.location.href = url;
+        function loadTheme() {
+            let isDark = localStorage.getItem("darkMode") === "true";
+            document.body.classList.toggle("dark-mode", isDark);
         }
     </script>
+    <style>
+        /* Light Mode */
+        body {
+            font-family: Arial, sans-serif;
+            background: #ffffff;
+            color: #333;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* Dark Mode */
+        .dark-mode {
+            background: #181818;
+            color: #ffffff;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            margin: 10px;
+        }
+
+        .dark-mode button {
+            background: #444;
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
+    <button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
     <h2>Watch Movies & TV Shows</h2>
-
-    <label for="type">Select Type:</label>
-    <select id="type" onchange="toggleFields()">
-        <option value="movie">Movie</option>
-        <option value="tv">TV Show</option>
-    </select><br><br>
-
-    <label for="code">Enter TMDB or IMDb Code:</label>
-    <input type="text" id="code" placeholder="e.g. 12345 or tt1234567"><br><br>
-
-    <div id="seasonField" style="display: none;">
-        <label for="season">Enter Season Number:</label>
-        <input type="text" id="season" placeholder="e.g. 1"><br><br>
-    </div>
-
-    <div id="episodeField" style="display: none;">
-        <label for="episode">Enter Episode Number:</label>
-        <input type="text" id="episode" placeholder="e.g. 2"><br><br>
-    </div>
-
-    <button onclick="redirect()">Watch Now</button>
 </body>
 </html>
