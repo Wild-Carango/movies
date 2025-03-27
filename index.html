@@ -110,7 +110,7 @@
             let url = type === "movie"
                 ? (code.startsWith("tt") 
                     ? `https://vidsrc.xyz/embed/movie?imdb=${code}` 
-                    : `https://vidsrc.xyz/embed/movie?tmdb=${code}/`)
+                    : `https://vidsrc.xyz/embed/movie?tmdb=${code}`)
                 : (code.startsWith("tt") 
                     ? `https://vidsrc.xyz/embed/tv?imdb=${code}&season=${season}&episode=${episode}`
                     : `https://vidsrc.xyz/embed/tv?tmdb=${code}&season=${season}&episode=${episode}`);
