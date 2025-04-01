@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch Movies & TV Shows</title>
+    <script>
+        const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b"; // Replace with your actual API key
+
+        document.addEventListener("DOMContentLoaded", function () {
+            loadTheme();
+        });
+
+        function toggleDarkMode() {
+            let body = document.body;
+            let isDark = body.classList.toggle("dark-mode");
+            localStorage.setItem("darkMode", isDark);
+        }
+
+        function loadTheme() {
+            let isDark = localStorage.getItem("darkMode") === "true";
+            document.body.classList.toggle("dark-mode", isDark);
+        }
+
+        function toggleFields() {
+            let type = document.getElementById("type").value;
+            document.getElementById("seasonField").style.display = type === "tv" ? "block" : "none";
+            document.getElementById("episodeField").style.display = type === "tv" ? "block" : "none";
+        }
+
+        async function fetchTMDBResults(query) {
+            if (query.length < 1) return;
+
+            let type = document.getElementById("type").value;
+            let searchType = type === "movie" ? "movie" : "tv";
+            let url = `https://api.themoviedb.org/3/search/${searchType}?api_key=${TMDB_API_KEY}&query=${query}`;
+
+            let response = await fetch(url);
+            let data = await response.json();
+
+            displaySuggestions(data.results);
+        }
+
+        function displaySuggestions(results) {
+            let suggestions = document.getElementById("suggestions");
+            suggestions.innerHTML = "";
+
+            results.forEach(item => {
+                let listItem = document.createElement("div");
+                listItem.classList.add("suggestion-item");
+
+                let posterPath = item.poster_path 
+                    ? `https://image.tmdb.org/t/p/w92${item.poster_path}` 
+                    : "https://via.placeholder.com/92x138?text=No+Image";
+
+                listItem.innerHTML = `
+                    <img src="${posterPath}" alt="Poster">
+                    <span>${item.name || item.title}</span>
+                `;
+
+                listItem.onclick = () => {
+                    document.getElementById("code").value = item.id;
+                    suggestions.innerHTML = "";
+                    fetchMovieDetails(item.id);
+                };
+
+                suggestions.appendChild(listItem);
+            });
+        }
+
+        async function fetchMovieDetails(tmdbID) {
+            let type = document.getElementById("type").value;
+            let detailsType = type === "movie" ? "movie" : "tv";
+            let url = `https://api.themoviedb.org/3/${detailsType}/${tmdbID}?api_key=${TMDB_API_KEY}`;
+
+            let response = await fetch(url);
+            let data = await response.json();
+
+            displayMovieDetails(data);
+
+            if (type === "tv") {
+                updateSeasonsDropdown(data.id, data.number_of_seasons);
+            }
+        }
+
+        function displayMovieDetails(data) {
+            let detailsDiv = document.getElementById("movieDetails");
+
+            let posterPath = data.poster_path 
+                ? `https://image.tmdb.org/t/p/w300${data.poster_path}` 
+                : "https://via.placeholder.com/300x450?text=No+Image";
+
+            detailsDiv.innerHTML = `
+                <img src="${posterPath}" alt="Poster" class="poster">
+                <h3>${data.name || data.title}</h3>
+                <p><strong>Release Date:</strong> ${data.release_date || data.first_air_date}</p>
+                <p><strong>Rating:</strong> ⭐ ${data.vote_average.toFixed(1)} / 10</p>
+                <p><strong>Overview:</strong> ${data.overview}</p>
+            `;
+            detailsDiv.style.display = "block";
+        }
+
+        function updateSeasonsDropdown(showID, numSeasons) {
+            let seasonDropdown = document.getElementById("season");
+            seasonDropdown.innerHTML = ""; 
+
+            for (let i = 1; i <= numSeasons; i++) {
+                let option = document.createElement("option");
+                option.value = i;
+                option.textContent = `Season ${i}`;
+                seasonDropdown.appendChild(option);
+            }
+
+            updateEpisodesDropdown(showID, 1);
+        }
+
+        async function updateEpisodesDropdown(showID, seasonNumber) {
+            let episodeDropdown = document.getElementById("episode");
+            episodeDropdown.innerHTML = ""; 
+
+            let url = `https://api.themoviedb.org/3/tv/${showID}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`;
+            let response = await fetch(url);
+            let data = await response.json();
+
+            data.episodes.forEach(ep => {
+                let option = document.createElement("option");
+                option.value = ep.episode_number;
+                option.textContent = `Episode ${ep.episode_number}`;
+                episodeDropdown.appendChild(option);
+            });
+        }
+
+        function handleSeasonChange() {
+            let showID = document.getElementById("code").value;
+            let selectedSeason = document.getElementById("season").value;
+            updateEpisodesDropdown(showID, selectedSeason);
+        }
+
+        function redirect() {
+            let type = document.getElementById("type").value;
+            let code = document.getElementById("code").value.trim();
+            let season = document.getElementById("season").value.trim();
+            let episode = document.getElementById("episode").value.trim();
+
+            if (code === "") {
+                alert("Please enter a valid code.");
+                return;
+            }
+
+            let url = type === "movie"
+                ? (code.startsWith("tt") 
+                    ? `https://vidsrc.xyz/embed/movie?imdb=${code}` 
+                    : `https://vidsrc.xyz/embed/movie?tmdb=${code}`)
+                : (code.startsWith("tt") 
+                    ? `https://vidsrc.xyz/embed/tv?imdb=${code}&season=${season}&episode=${episode}`
+                    : `https://vidsrc.xyz/embed/tv?tmdb=${code}&season=${season}&episode=${episode}`);
+
+            window.location.href = url;
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f8f8f8;
+            color: #333;
+            transition: background 0.3s, color 0.3s;
+            text-align: left;
+        }
+
+        .dark-mode {
+            background: #181818;
+            color: #ffffff;
+        }
+
+        button {
+            padding: 12px 18px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 50px;
+            margin: 10px;
+            background: #007BFF;
+            color: #fff;
+            transition: 0.3s;
+        }
+
+        .dark-mode button {
+            background: #444;
+        }
+
+        #suggestions {
+            border: 0px solid #ccc;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            position: absolute;
+            width: 350px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            cursor: pointer;
+            background: #ffffff;
+            color: #000;
+            border-bottom: 1px solid #ddd;
+            transition: 0.3s;
+        }
+
+        .suggestion-item:hover {
+            background: #f0f0f0;
+        } 
+
+
+        .container {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            justify-content: left;
+            margin-top: 20px;
+        }
+
+        .input-section {
+            max-width: 400px;
+            flex: 1;
+                                             
+        }
+
+        .poster {
+            width: 400px;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+
+        .poster:hover {
+            transform: scale(1.05);
+        }
+
+        #movieDetails {
+            flex: 1;
+            max-width: 400px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #000;
+            display: none;
+        }
+
+        .dark-mode #movieDetails {
+            background: #333;
+            color: white;
+        }
+
+        select {
+            width: 50%;
+            padding: 7px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        .dark-mode select {
+            background: #444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="input-section">
+        <button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
+        <h2>Watch Movies & TV Shows</h2>
+           
+        <label for="type">Select Type:</label>
+        <select id="type" onchange="toggleFields()">
+            <option value="movie">Movie</option>
+            <option value="tv">TV Shows</option>
+        </select><br><br>
+
+        <label for="code">Search or Enter TMDB/IMDb Code:</label>
+        <input type="text" id="code" placeholder="Search Movies / TV Shows" onkeyup="fetchTMDBResults(this.value)">
+        <div id="suggestions"></div><br><br>
+
+        <div id="seasonField" style="display: none;">
+            <label for="season">Season:</label>
+            <select id="season" onchange="handleSeasonChange()"></select><br><br>
+        </div>
+
+        <div id="episodeField" style="display: none;">
+            <label for="episode">Episode:</label>
+            <select id="episode"></select><br><br>
+        </div>
+
+        <button onclick="redirect()">Watch Now</button>
+
+    </div>
+
+    <div id="movieDetails"></div>
+</div>
+
+</body>
+</html>
