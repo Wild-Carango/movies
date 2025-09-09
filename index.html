@@ -1,393 +1,202 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Carango TV - Watch Movies & TV Shows</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Template B — Netflix Style</title>
 <style>
   :root{
-    --bg:#0f0f10; --fg:#e8e8e8; --muted:#a7a7a7;
-    --panel:#17181a; --panel-2:#1e2023;
-    --brand:#4f8cff; --chip:#2b2d31;
-    --radius:14px;
+    --bg:#181818; --panel:#141414; --fg:#fff; --muted:#bdbdbd; --accent:#e50914;
   }
+  *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  a{color:inherit}
-  /* header */
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; padding:14px 18px; background:var(--panel); position:sticky; top:0; z-index:10;
-    border-bottom:1px solid #232428;
+  header{
+    position:sticky; top:0; z-index:10; background:var(--panel);
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 22px; border-bottom:1px solid #222;
   }
-  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
-  .brand svg{width:28px;height:28px}
-  .actions{display:flex;gap:10px}
-  .btn{
-    padding:10px 14px; background:var(--chip); color:var(--fg);
-    border:0; border-radius:999px; cursor:pointer; font-weight:600;
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px}
+  .brand svg{width:26px;height:26px;color:var(--accent)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap}
+  .chip, select{
+    background:#2a2a2a; color:#fff; border:0; border-radius:999px; padding:10px 14px; cursor:pointer; font-weight:600;
   }
-  .btn:hover{filter:brightness(1.05)}
-  /* layout */
-  .shell{display:grid; grid-template-columns:320px 1fr; gap:20px; padding:20px; max-width:1280px; margin:0 auto}
-  .panel{background:var(--panel); border-radius:var(--radius); padding:16px; box-shadow:0 10px 20px rgba(0,0,0,.25)}
-  .side h2{margin:6px 0 12px 0; font-size:22px}
-  label{display:block; margin-top:12px; font-weight:600}
-  input[type="text"], select{
-    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #33363a;
-    background:var(--panel-2); color:var(--fg); outline:none;
+  .chip.active{background:var(--accent)}
+  main{padding:22px}
+  h2{margin:0 0 12px 4px; font-size:22px}
+  .row-wrap{overflow:hidden}
+  .row{
+    display:flex; gap:12px; overflow-x:auto; padding:6px 4px 12px; scroll-behavior:smooth;
   }
-  .primary{background:var(--brand)}
-  .hint{color:var(--muted); font-size:13px}
-  /* content area */
-  .content{display:grid; grid-template-columns:420px 1fr; gap:20px}
-  #movieDetails.panel{min-height:420px}
-  #trendingSection{margin-top:0}
-  #controlsInline{display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px}
-  #trendingGrid{display:flex; flex-wrap:wrap; gap:16px; justify-content:flex-start}
-  .card{
-    width:172px; background:#111214; border:1px solid #222428; border-radius:12px; overflow:hidden; cursor:pointer;
-    transition:transform .2s ease, box-shadow .2s ease;
-  }
+  .row::-webkit-scrollbar{height:8px} .row::-webkit-scrollbar-thumb{background:#444;border-radius:10px}
+  .card{flex:0 0 auto; width:168px; background:#0f0f0f; border-radius:10px; overflow:hidden; cursor:pointer;
+        transition:transform .2s ease, box-shadow .2s ease; border:1px solid #222}
   .card:hover{transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .card img{width:100%; height:auto; display:block}
-  .card .meta{padding:10px}
-  .card .title{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .card .sub{font-size:12px; color:var(--muted)}
-  .status{min-height:20px; margin:6px 0 0 0; color:var(--muted)}
-  /* skeletons */
-  .skel{width:172px;height:258px;border-radius:12px;background:linear-gradient(90deg,#202226 25%,#2a2d32 37%,#202226 63%);background-size:400% 100%;animation:sh 1.2s infinite}
-  @keyframes sh{0%{background-position:100% 0}100%{background-position:0 0}}
-  /* responsive */
-  @media (max-width:1100px){
-    .shell{grid-template-columns:1fr}
-    .content{grid-template-columns:1fr}
+  .meta{padding:8px 10px}
+  .title{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .sub{font-size:12px; color:var(--muted)}
+  .status{margin:10px 6px; color:var(--muted)}
+  /* modal */
+  .modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6)}
+  .modal.open{display:grid}
+  .sheet{max-width:880px; width:min(92vw,880px); background:#111; border:1px solid #222; border-radius:16px; overflow:hidden}
+  .sheet-wrap{display:grid; grid-template-columns:280px 1fr; gap:16px; padding:16px}
+  .sheet img{width:100%; border-radius:10px}
+  .sheet h3{margin:0 0 6px}
+  .sheet .overview{color:#d0d0d0; font-size:14px}
+  .btn{
+    background:var(--accent); color:#fff; border:0; border-radius:999px; padding:10px 16px; cursor:pointer; font-weight:700;
   }
-
-/* Suggestions list items */
-.suggestion-item{
-  display:flex; align-items:center; gap:10px;
-  padding:8px 10px; cursor:pointer; border-bottom:1px solid #222428;
-}
-.suggestion-item img{ width:46px; height:auto; border-radius:6px; }
-.suggestion-item:hover{ background:#1b1c1f; }
-
-
+  .btn.secondary{background:#2a2a2a}
+  .sheet-actions{display:flex; gap:10px; margin-top:12px}
+  @media (max-width:720px){
+    .sheet-wrap{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 
-<header class="topbar">
+<header>
   <div class="brand">
-    <!-- tiny play icon -->
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-    <span>Carango TV - Watch Movies & TV Shows</span>
+    <span><H1>Carango Tv</H1></span>
   </div>
 
+  <div class="controls">
+    <button class="chip active" id="tabMovie" onclick="switchType('movie')">Movies</button>
+    <button class="chip" id="tabTV" onclick="switchType('tv')">TV Shows</button>
+
+    <select id="timeSelect" onchange="reload()">
+      <option value="day">Today</option>
+      <option value="week">This Week</option>
+    </select>
+  </div>
 </header>
 
-<main class="shell">
-  <!-- Sidebar -->
-  <aside class="panel side">
-    <h2>Quick Play</h2>
-
-    <label for="type">Select Type</label>
-    <select id="type" onchange="toggleFields()">
-      <option value="movie">Movie</option>
-      <option value="tv">TV Shows</option>
-    </select>
-
-    <label for="code">Search or Enter TMDB/IMDb Code</label>
-    <input type="text" id="code" placeholder="Search Movies / TV Shows" onkeyup="fetchTMDBResults(this.value)">
-    <div id="suggestions" role="listbox" aria-label="Search results" class="panel" style="padding:0;margin-top:8px;"></div>
-
-    <div id="seasonField" style="display:none;">
-      <label for="season">Season</label>
-      <select id="season" onchange="handleSeasonChange()"></select>
-    </div>
-
-    <div id="episodeField" style="display:none;">
-      <label for="episode">Episode</label>
-      <select id="episode"></select>
-    </div>
-
-    <button class="btn primary" style="width:100%; margin-top:16px;" onclick="redirect()">▶ Watch Now</button>
-
-    <p class="hint">Tip: pick a result from search to auto-fill details.</p>
-  </aside>
-
-  <!-- Content -->
-<style>
-  .panel h2 {
-    margin: 6px 0 12px;
-    font-size: 22px;
-    line-height: 1.2;
-  }
-
-/* Make input and select boxes uniform */
-input[type="text"], select {
-    width: 100%;                /* same width */
-    padding: 10px;              /* same padding */
-    border-radius: 8px;         /* rounded corners */
-    border: 1px solid #ccc;     /* border */
-    font-size: 16px;            /* same font size */
-    background: #222;           /* background (dark mode feel) */
-    color: #fff;                /* text color */
-    box-sizing: border-box;     /* ensures padding doesn't affect width */
-}
-
-#movieDetails {
-    flex: 1;
-    max-width: 400px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    background: #111;       /* match dark card background */
-    color: #fff;
-    display: flex;          /* center content */
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    text-align: center;     /* center text below poster */
-}
-
-
-</style>
-
-  <section class="content">
-    <div id="movieDetails" class="panel"></div>
-    <section class="panel">
-    <h2>Trending</h2>
-      <!-- inline trending controls -->
-      <div id="controlsInline">
-        <div>
-          <label for="trendingType">Type</label>
-          <select id="trendingType">
-            <option value="movie">Movie</option>
-            <option value="tv">TV Show</option>
-          </select>
-        </div>
-        <div>
-          <label for="trendingTime">Time</label>
-          <select id="trendingTime">
-            <option value="day">Today</option>
-            <option value="week">This Week</option>
-          </select>
-        </div>
-        <button class="btn" onclick="fetchTrending()">Fetch</button>
-      </div>
-
-      <div id="status" class="status" aria-live="polite"></div>
-      <div id="trendingGrid"></div>
-    </section>
-  </section>
+<main>
+  <h2 id="sectionTitle">Trending Movies</h2>
+  <div class="status" id="status"></div>
+  <div class="row-wrap">
+    <div id="contentRow" class="row"></div>
+  </div>
 </main>
 
+<!-- Detail Modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="sheet-wrap">
+      <img id="mPoster" alt="Poster">
+      <div>
+        <h3 id="mTitle"></h3>
+        <div class="sub" id="mMeta"></div>
+        <p class="overview" id="mOverview"></p>
+        <div class="sheet-actions">
+          <button class="btn" id="playBtn">▶ Play</button>
+          <button class="btn secondary" onclick="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b"; // Replace with your actual API key
+  // ====== CONFIG ======
+  const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b";  // <-- replace
+  const IMG = "https://image.tmdb.org/t/p/w300";
 
-        document.addEventListener("DOMContentLoaded", function () {
-            loadTheme();
-        });
+  // ====== STATE ======
+  let currentType = "movie"; // 'movie' | 'tv'
+  let cached = [];           // last fetched results
 
-        function toggleDarkMode() {
-            let body = document.body;
-            let isDark = body.classList.toggle("dark-mode");
-            localStorage.setItem("darkMode", isDark);
-        }
+  // ====== INIT ======
+  document.addEventListener("DOMContentLoaded", reload);
 
-        function loadTheme() {
-            let isDark = localStorage.getItem("darkMode") === "true";
-            document.body.classList.toggle("dark-mode", isDark);
-        }
+  // ====== UI SWITCHES ======
+  function switchType(t){
+    currentType = t;
+    document.getElementById('tabMovie').classList.toggle('active', t==='movie');
+    document.getElementById('tabTV').classList.toggle('active', t==='tv');
+    reload();
+  }
+  function reload(){ loadTrending(currentType, document.getElementById('timeSelect').value); }
 
-        function toggleFields() {
-            let type = document.getElementById("type").value;
-            document.getElementById("seasonField").style.display = type === "tv" ? "block" : "none";
-            document.getElementById("episodeField").style.display = type === "tv" ? "block" : "none";
-        }
+  // ====== FETCH TRENDING ======
+  async function loadTrending(type="movie", time="day"){
+    const title = type==='movie' ? "Trending Movies" : "Trending TV Shows";
+    document.getElementById("sectionTitle").textContent = title;
+    setStatus("Loading…");
 
-        async function fetchTMDBResults(query) {
-            if (query.length < 1) return;
+    try{
+      const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(res.status+" "+res.statusText);
+      const data = await res.json();
+      cached = data.results || [];
+      renderRow(cached, type);
+      setStatus("");
+    }catch(err){
+      console.error(err);
+      setStatus("Sorry, something went wrong. Check your TMDB key or network.");
+    }
+  }
 
-            let type = document.getElementById("type").value;
-            let searchType = type === "movie" ? "movie" : "tv";
-            let url = `https://api.themoviedb.org/3/search/${searchType}?api_key=${TMDB_API_KEY}&query=${query}`;
+  function setStatus(msg){ document.getElementById('status').textContent = msg || ""; }
 
-            let response = await fetch(url);
-            let data = await response.json();
+  // ====== RENDER CARDS ======
+  function renderRow(items, type){
+    const row = document.getElementById("contentRow");
+    row.innerHTML = "";
+    items.forEach(item=>{
+      const title = item.title || item.name || "Untitled";
+      const rating = (item.vote_average || 0).toFixed(1);
+      const poster = item.poster_path ? IMG + item.poster_path : "https://via.placeholder.com/300x450?text=No+Image";
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="${poster}" loading="lazy" alt="${title}">
+        <div class="meta">
+          <div class="title">${title}</div>
+          <div class="sub">⭐ ${rating}</div>
+        </div>`;
+      card.onclick = () => openModal(item, type);
+      row.appendChild(card);
+    });
+  }
 
-            displaySuggestions(data.results);
-        }
+  // ====== MODAL ======
+  function openModal(item, type){
+    const poster = item.poster_path ? IMG + item.poster_path : "https://via.placeholder.com/300x450?text=No+Image";
+    document.getElementById('mPoster').src = poster;
+    document.getElementById('mPoster').alt = item.title || item.name || "Poster";
+    document.getElementById('mTitle').textContent = item.title || item.name || "Untitled";
+    const date = item.release_date || item.first_air_date || "—";
+    document.getElementById('mMeta').textContent = `${type.toUpperCase()} • ${date} • ⭐ ${(item.vote_average||0).toFixed(1)}`;
+    document.getElementById('mOverview').textContent = item.overview || "No overview available.";
 
-        function displaySuggestions(results) {
-            let suggestions = document.getElementById("suggestions");
-            suggestions.innerHTML = "";
+    const id = item.id;
+    const playBtn = document.getElementById('playBtn');
+    playBtn.onclick = () => {
+      if(type === 'movie'){
+        // Play movie by TMDB id
+        window.location.href = `https://vidsrc.xyz/embed/movie?tmdb=${id}`;
+      }else{
+        // Ask for season / episode quickly
+        const s = prompt("Season number?", "1");
+        if(s === null) return;
+        const e = prompt("Episode number?", "1");
+        if(e === null) return;
+        window.location.href = `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${encodeURIComponent(s)}&episode=${encodeURIComponent(e)}`;
+      }
+    };
 
-            results.forEach(item => {
-                let listItem = document.createElement("div");
-                listItem.classList.add("suggestion-item");
-
-                let posterPath = item.poster_path 
-                    ? `https://image.tmdb.org/t/p/w92${item.poster_path}` 
-                    : "https://via.placeholder.com/92x138?text=No+Image";
-
-                listItem.innerHTML = `
-                    <img src="${posterPath}" alt="Poster">
-                    <span>${item.name || item.title}</span>
-                `;
-
-                listItem.onclick = () => {
-                    document.getElementById("code").value = item.id;
-                    suggestions.innerHTML = "";
-                    fetchMovieDetails(item.id);
-                };
-
-                suggestions.appendChild(listItem);
-            });
-        }
-
-        async function fetchMovieDetails(tmdbID) {
-            let type = document.getElementById("type").value;
-            let detailsType = type === "movie" ? "movie" : "tv";
-            let url = `https://api.themoviedb.org/3/${detailsType}/${tmdbID}?api_key=${TMDB_API_KEY}`;
-
-            let response = await fetch(url);
-            let data = await response.json();
-
-            displayMovieDetails(data);
-
-            if (type === "tv") {
-                updateSeasonsDropdown(data.id, data.number_of_seasons);
-            }
-        }
-
-        function displayMovieDetails(data) {
-            let detailsDiv = document.getElementById("movieDetails");
-
-            let posterPath = data.poster_path 
-                ? `https://image.tmdb.org/t/p/w300${data.poster_path}` 
-                : "https://via.placeholder.com/300x450?text=No+Image";
-
-            detailsDiv.innerHTML = `
-                <img src="${posterPath}" alt="Poster" class="poster">
-                <h3>${data.name || data.title}</h3>
-                <p><strong>Release Date:</strong> ${data.release_date || data.first_air_date}</p>
-                <p><strong>Rating:</strong> ⭐ ${data.vote_average.toFixed(1)} / 10</p>
-                <p><strong>Overview:</strong> ${data.overview}</p>
-            `;
-            detailsDiv.style.display = "block";
-        }
-
-        function updateSeasonsDropdown(showID, numSeasons) {
-            let seasonDropdown = document.getElementById("season");
-            seasonDropdown.innerHTML = ""; 
-
-            for (let i = 1; i <= numSeasons; i++) {
-                let option = document.createElement("option");
-                option.value = i;
-                option.textContent = `Season ${i}`;
-                seasonDropdown.appendChild(option);
-            }
-
-            updateEpisodesDropdown(showID, 1);
-        }
-
-        async function updateEpisodesDropdown(showID, seasonNumber) {
-            let episodeDropdown = document.getElementById("episode");
-            episodeDropdown.innerHTML = ""; 
-
-            let url = `https://api.themoviedb.org/3/tv/${showID}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`;
-            let response = await fetch(url);
-            let data = await response.json();
-
-            data.episodes.forEach(ep => {
-                let option = document.createElement("option");
-                option.value = ep.episode_number;
-                option.textContent = `Episode ${ep.episode_number}`;
-                episodeDropdown.appendChild(option);
-            });
-        }
-
-        function handleSeasonChange() {
-            let showID = document.getElementById("code").value;
-            let selectedSeason = document.getElementById("season").value;
-            updateEpisodesDropdown(showID, selectedSeason);
-        }
-
-        function redirect() {
-            let type = document.getElementById("type").value;
-            let code = document.getElementById("code").value.trim();
-            let season = document.getElementById("season").value.trim();
-            let episode = document.getElementById("episode").value.trim();
-
-            if (code === "") {
-                alert("Please enter a valid code.");
-                return;
-            }
-
-            let url = type === "movie"
-                ? (code.startsWith("tt") 
-                    ? `https://vidsrc.xyz/embed/movie?imdb=${code}` 
-                    : `https://vidsrc.xyz/embed/movie?tmdb=${code}`)
-                : (code.startsWith("tt") 
-                    ? `https://vidsrc.xyz/embed/tv?imdb=${code}&season=${season}&episode=${episode}`
-                    : `https://vidsrc.xyz/embed/tv?tmdb=${code}&season=${season}&episode=${episode}`);
-
-            window.location.href = url;
-        }
-
-	function toggleTrending() {
-        const section = document.getElementById("trendingSection");
-        section.style.display = section.style.display === "none" ? "block" : "none";
-    	}
-
-    	async function fetchTrending() {
-        	const type = document.getElementById("trendingType").value;
-        	const time = document.getElementById("trendingTime").value;
-        	const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}`;
-
-        	const res = await fetch(url);
-        	const data = await res.json();
-        	const grid = document.getElementById("trendingGrid");
-        	grid.innerHTML = "";
-
-        	data.results.forEach(item => {
-            		const title = item.title || item.name;
-            		const id = item.id;
-            		const rating = item.vote_average?.toFixed(1) || "N/A";
-            		const poster = item.poster_path
-                		? `https://image.tmdb.org/t/p/w300${item.poster_path}`
-                		: "https://via.placeholder.com/300x450?text=No+Image";
-
-            		const card = document.createElement("div");
-            		card.style.width = "150px";
-            		card.style.background = document.body.classList.contains("dark-mode") ? "#333" : "#fff";
-            		card.style.color = document.body.classList.contains("dark-mode") ? "#fff" : "#000";
-            		card.style.borderRadius = "8px";
-            		card.style.overflow = "hidden";
-            		card.style.cursor = "pointer";
-            		card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-            		card.style.transition = "transform 0.3s";
-
-            		card.innerHTML = `
-                		<img src="${poster}" alt="${title}" style="width: 100%; height: auto;">
-                		<div style="padding: 8px;">
-                    			<strong style="font-size: 14px;">${title}</strong><br>
-                    			<span style="font-size: 12px;">⭐ ${rating}</span>
-                		</div>
-            		`;
-
-            		card.onclick = () => {
-                		document.getElementById("code").value = id;
-                		fetchMovieDetails(id);
-                		window.scrollTo({ top: 0, behavior: "smooth" });
-            		};
-
-            		grid.appendChild(card);
-        	});
-    	}
-
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+  // Close on background click
+  document.getElementById('modal').addEventListener('click', (e)=>{
+    if(e.target.id === 'modal') closeModal();
+  });
 </script>
-
 </body>
 </html>
