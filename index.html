@@ -1,393 +1,438 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Carango TV - Watch Movies & TV Shows</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Template B — Netflix Style + Search</title>
 <style>
   :root{
-    --bg:#0f0f10; --fg:#e8e8e8; --muted:#a7a7a7;
-    --panel:#17181a; --panel-2:#1e2023;
-    --brand:#4f8cff; --chip:#2b2d31;
-    --radius:14px;
+    --bg:#181818; --panel:#141414; --fg:#fff; --muted:#bdbdbd; --accent:#e50914;
   }
+  *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
-  a{color:inherit}
-  /* header */
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between;
-    gap:12px; padding:14px 18px; background:var(--panel); position:sticky; top:0; z-index:10;
-    border-bottom:1px solid #232428;
+
+  /* Header */
+  header{
+    position:sticky; top:0; z-index:20; background:var(--panel);
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:14px;
+    padding:14px 22px; border-bottom:1px solid #222;
   }
-  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
-  .brand svg{width:28px;height:28px}
-  .actions{display:flex;gap:10px}
-  .btn{
-    padding:10px 14px; background:var(--chip); color:var(--fg);
-    border:0; border-radius:999px; cursor:pointer; font-weight:600;
+  .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px}
+  .brand svg{width:26px;height:26px;color:var(--accent)}
+  .controls{display:flex;gap:10px;flex-wrap:wrap; justify-content:flex-end}
+  .chip, select{
+    background:#2a2a2a; color:#fff; border:0; border-radius:999px; padding:10px 14px; cursor:pointer; font-weight:600;
   }
-  .btn:hover{filter:brightness(1.05)}
-  /* layout */
-  .shell{display:grid; grid-template-columns:320px 1fr; gap:20px; padding:20px; max-width:1280px; margin:0 auto}
-  .panel{background:var(--panel); border-radius:var(--radius); padding:16px; box-shadow:0 10px 20px rgba(0,0,0,.25)}
-  .side h2{margin:6px 0 12px 0; font-size:22px}
-  label{display:block; margin-top:12px; font-weight:600}
-  input[type="text"], select{
-    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #33363a;
-    background:var(--panel-2); color:var(--fg); outline:none;
+  .chip.active{background:var(--accent)}
+
+  /* Search */
+  .search-wrap{position:relative; display:flex; align-items:center;}
+  #searchBox{
+    width:100%; max-width:560px; background:#2a2a2a; color:#fff; border:1px solid #333;
+    border-radius:999px; padding:10px 14px; outline:none;
   }
-  .primary{background:var(--brand)}
-  .hint{color:var(--muted); font-size:13px}
-  /* content area */
-  .content{display:grid; grid-template-columns:420px 1fr; gap:20px}
-  #movieDetails.panel{min-height:420px}
-  #trendingSection{margin-top:0}
-  #controlsInline{display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px}
-  #trendingGrid{display:flex; flex-wrap:wrap; gap:16px; justify-content:flex-start}
-  .card{
-    width:172px; background:#111214; border:1px solid #222428; border-radius:12px; overflow:hidden; cursor:pointer;
-    transition:transform .2s ease, box-shadow .2s ease;
+  #searchBox::placeholder{color:#9a9a9a}
+  .sugg{
+    position:absolute; left:0; top:calc(100% + 6px); width:100%; max-width:560px;
+    background:#0f0f0f; border:1px solid #222; border-radius:12px; overflow:hidden;
+    box-shadow:0 12px 30px rgba(0,0,0,.45); display:none;
   }
+  .sugg-item{
+    display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; border-bottom:1px solid #1f1f1f;
+  }
+  .sugg-item:last-child{border-bottom:0}
+  .sugg-item img{width:40px; height:60px; object-fit:cover; border-radius:6px}
+  .sugg-item .t{display:flex; flex-direction:column}
+  .sugg-item .name{font-size:14px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:380px;}
+  .sugg-item .meta{font-size:12px; color:#bdbdbd}
+  .sugg-item.active{background:#1a1a1a}
+
+  main{padding:22px}
+  h2{margin:0 0 12px 4px; font-size:22px}
+  .row-wrap{overflow:hidden}
+  .row{
+    display:flex; gap:12px; overflow-x:auto; padding:6px 4px 12px; scroll-behavior:smooth;
+  }
+  .row::-webkit-scrollbar{height:8px} .row::-webkit-scrollbar-thumb{background:#444;border-radius:10px}
+  .card{flex:0 0 auto; width:168px; background:#0f0f0f; border-radius:10px; overflow:hidden; cursor:pointer;
+        transition:transform .2s ease, box-shadow .2s ease; border:1px solid #222}
   .card:hover{transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .card img{width:100%; height:auto; display:block}
-  .card .meta{padding:10px}
-  .card .title{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .card .sub{font-size:12px; color:var(--muted)}
-  .status{min-height:20px; margin:6px 0 0 0; color:var(--muted)}
-  /* skeletons */
-  .skel{width:172px;height:258px;border-radius:12px;background:linear-gradient(90deg,#202226 25%,#2a2d32 37%,#202226 63%);background-size:400% 100%;animation:sh 1.2s infinite}
-  @keyframes sh{0%{background-position:100% 0}100%{background-position:0 0}}
-  /* responsive */
-  @media (max-width:1100px){
-    .shell{grid-template-columns:1fr}
-    .content{grid-template-columns:1fr}
-  }
+  .meta{padding:8px 10px}
+  .title{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .sub{font-size:12px; color:var(--muted)}
+  .status{margin:10px 6px; color:var(--muted)}
 
-/* Suggestions list items */
-.suggestion-item{
-  display:flex; align-items:center; gap:10px;
-  padding:8px 10px; cursor:pointer; border-bottom:1px solid #222428;
+/* --- Carousel helpers --- */
+.carousel {
+  position: relative;
 }
-.suggestion-item img{ width:46px; height:auto; border-radius:6px; }
-.suggestion-item:hover{ background:#1b1c1f; }
+
+.row {
+  scroll-snap-type: x mandatory;     /* snap horizontally */
+}
+
+.card {
+  scroll-snap-align: start;           /* each card snaps at the left edge */
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  z-index: 5;
+  transition: background .2s ease, transform .1s ease;
+}
+.arrow:hover { background: rgba(0,0,0,.75); }
+.arrow:active { transform: translateY(-50%) scale(.96); }
+
+.arrow.left  { left: 6px; }
+.arrow.right { right: 6px; }
+
+/* Visible focus for remote/keyboard users */
+.card:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 
 
+
+  /* Modal */
+  .modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6); z-index:30}
+  .modal.open{display:grid}
+  .sheet{max-width:880px; width:min(92vw,880px); background:#111; border:1px solid #222; border-radius:16px; overflow:hidden}
+  .sheet-wrap{display:grid; grid-template-columns:280px 1fr; gap:16px; padding:16px}
+  .sheet img{width:100%; border-radius:10px}
+  .sheet h3{margin:0 0 6px}
+  .sheet .overview{color:#d0d0d0; font-size:14px}
+  .btn{
+    background:var(--accent); color:#fff; border:0; border-radius:999px; padding:10px 16px; cursor:pointer; font-weight:700;
+  }
+  .btn.secondary{background:#2a2a2a}
+  .sheet-actions{display:flex; gap:10px; margin-top:12px}
+  @media (max-width:720px){
+    header{grid-template-columns:1fr; gap:10px}
+    .controls{justify-content:flex-start}
+    .sheet-wrap{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <!-- tiny play icon -->
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-    <span>Carango TV - Watch Movies & TV Shows</span>
+<header>
+
+       <H2 style="color: #FF0000;">Carango Tv</H2>
+
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <input id="searchBox" type="text" placeholder="Search movies & TV shows… (e.g. Dune, The Bear)" autocomplete="off" />
+    <div id="suggList" class="sugg" role="listbox" aria-label="Search suggestions"></div>
   </div>
 
+  <div class="controls">
+    <button class="chip active" id="tabMovie" onclick="switchType('movie')">Movies</button>
+    <button class="chip" id="tabTV" onclick="switchType('tv')">TV Shows</button>
+
+    <select id="timeSelect" onchange="reload()">
+      <option value="day">Today</option>
+      <option value="week">This Week</option>
+    </select>
+  </div>
 </header>
 
-<main class="shell">
-  <!-- Sidebar -->
-  <aside class="panel side">
-    <h2>Quick Play</h2>
-
-    <label for="type">Select Type</label>
-    <select id="type" onchange="toggleFields()">
-      <option value="movie">Movie</option>
-      <option value="tv">TV Shows</option>
-    </select>
-
-    <label for="code">Search or Enter TMDB/IMDb Code</label>
-    <input type="text" id="code" placeholder="Search Movies / TV Shows" onkeyup="fetchTMDBResults(this.value)">
-    <div id="suggestions" role="listbox" aria-label="Search results" class="panel" style="padding:0;margin-top:8px;"></div>
-
-    <div id="seasonField" style="display:none;">
-      <label for="season">Season</label>
-      <select id="season" onchange="handleSeasonChange()"></select>
-    </div>
-
-    <div id="episodeField" style="display:none;">
-      <label for="episode">Episode</label>
-      <select id="episode"></select>
-    </div>
-
-    <button class="btn primary" style="width:100%; margin-top:16px;" onclick="redirect()">▶ Watch Now</button>
-
-    <p class="hint">Tip: pick a result from search to auto-fill details.</p>
-  </aside>
-
-  <!-- Content -->
-<style>
-  .panel h2 {
-    margin: 6px 0 12px;
-    font-size: 22px;
-    line-height: 1.2;
-  }
-
-/* Make input and select boxes uniform */
-input[type="text"], select {
-    width: 100%;                /* same width */
-    padding: 10px;              /* same padding */
-    border-radius: 8px;         /* rounded corners */
-    border: 1px solid #ccc;     /* border */
-    font-size: 16px;            /* same font size */
-    background: #222;           /* background (dark mode feel) */
-    color: #fff;                /* text color */
-    box-sizing: border-box;     /* ensures padding doesn't affect width */
-}
-
-#movieDetails {
-    flex: 1;
-    max-width: 400px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    background: #111;       /* match dark card background */
-    color: #fff;
-    display: flex;          /* center content */
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    text-align: center;     /* center text below poster */
-}
+<main>
+  <h2 id="sectionTitle">Trending Movies</h2>
+  <div class="status" id="status"></div>
+  <div class="row-wrap carousel">
+  <button class="arrow left"  aria-label="Previous" onclick="scrollRow(-1)">❮</button>
+  <div id="contentRow" class="row"></div>
+  <button class="arrow right" aria-label="Next"     onclick="scrollRow(1)">❯</button>
+</div>
 
 
-</style>
 
-  <section class="content">
-    <div id="movieDetails" class="panel"></div>
-    <section class="panel">
-    <h2>Trending</h2>
-      <!-- inline trending controls -->
-      <div id="controlsInline">
-        <div>
-          <label for="trendingType">Type</label>
-          <select id="trendingType">
-            <option value="movie">Movie</option>
-            <option value="tv">TV Show</option>
-          </select>
-        </div>
-        <div>
-          <label for="trendingTime">Time</label>
-          <select id="trendingTime">
-            <option value="day">Today</option>
-            <option value="week">This Week</option>
-          </select>
-        </div>
-        <button class="btn" onclick="fetchTrending()">Fetch</button>
-      </div>
-
-      <div id="status" class="status" aria-live="polite"></div>
-      <div id="trendingGrid"></div>
-    </section>
-  </section>
 </main>
 
+<!-- Detail Modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <div class="sheet-wrap">
+      <img id="mPoster" alt="Poster">
+      <div>
+        <h3 id="mTitle"></h3>
+        <div class="sub" id="mMeta"></div>
+        <p class="overview" id="mOverview"></p>
+        <div class="sheet-actions">
+          <button class="btn" id="playBtn">▶ Play</button>
+          <button class="btn secondary" onclick="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b"; // Replace with your actual API key
+  // ====== CONFIG ======
+  const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b";  // <-- replace
+  const IMG = "https://image.tmdb.org/t/p/w300";
+  const IMG92 = "https://image.tmdb.org/t/p/w92";
 
-        document.addEventListener("DOMContentLoaded", function () {
-            loadTheme();
-        });
+  // ====== STATE ======
+  let currentType = "movie"; // 'movie' | 'tv'
+  let cached = [];           // last fetched results
+  let activeIndex = -1;      // keyboard selection in suggestions
+  let debounceId = null;
 
-        function toggleDarkMode() {
-            let body = document.body;
-            let isDark = body.classList.toggle("dark-mode");
-            localStorage.setItem("darkMode", isDark);
-        }
+  // ====== INIT ======
+  document.addEventListener("DOMContentLoaded", ()=>{
+    reload();
+    wireSearch();
+  });
 
-        function loadTheme() {
-            let isDark = localStorage.getItem("darkMode") === "true";
-            document.body.classList.toggle("dark-mode", isDark);
-        }
+  // ====== UI SWITCHES ======
+  function switchType(t){
+    currentType = t;
+    document.getElementById('tabMovie').classList.toggle('active', t==='movie');
+    document.getElementById('tabTV').classList.toggle('active', t==='tv');
+    reload();
+  }
+  function reload(){ loadTrending(currentType, document.getElementById('timeSelect').value); }
 
-        function toggleFields() {
-            let type = document.getElementById("type").value;
-            document.getElementById("seasonField").style.display = type === "tv" ? "block" : "none";
-            document.getElementById("episodeField").style.display = type === "tv" ? "block" : "none";
-        }
+  // ====== FETCH TRENDING ======
+  async function loadTrending(type="movie", time="day"){
+    const title = type==='movie' ? "Trending Movies" : "Trending TV Shows";
+    document.getElementById("sectionTitle").textContent = title;
+    setStatus("Loading…");
 
-        async function fetchTMDBResults(query) {
-            if (query.length < 1) return;
+    try{
+      const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(res.status+" "+res.statusText);
+      const data = await res.json();
+      cached = data.results || [];
+      renderRow(cached, type);
+      setStatus("");
+    }catch(err){
+      console.error(err);
+      setStatus("Sorry, something went wrong. Check your TMDB key or network.");
+    }
+  }
+  function setStatus(msg){ document.getElementById('status').textContent = msg || ""; }
 
-            let type = document.getElementById("type").value;
-            let searchType = type === "movie" ? "movie" : "tv";
-            let url = `https://api.themoviedb.org/3/search/${searchType}?api_key=${TMDB_API_KEY}&query=${query}`;
+  // ====== RENDER ROW ======
+  function renderRow(items, type){
+  const row = document.getElementById("contentRow");
+  row.innerHTML = "";
 
-            let response = await fetch(url);
-            let data = await response.json();
+  items.forEach(item => {
+    const title  = item.title || item.name || "Untitled";
+    const rating = (item.vote_average || 0).toFixed(1);
+    const poster = item.poster_path
+      ? IMG + item.poster_path
+      : "https://via.placeholder.com/300x450?text=No+Image";
 
-            displaySuggestions(data.results);
-        }
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("tabindex", "0"); // focusable for remote/keyboard
 
-        function displaySuggestions(results) {
-            let suggestions = document.getElementById("suggestions");
-            suggestions.innerHTML = "";
+    card.innerHTML = `
+      <img src="${poster}" loading="lazy" alt="${title}">
+      <div class="meta">
+        <div class="title">${title}</div>
+        <div class="sub">⭐ ${rating}</div>
+      </div>
+    `;
 
-            results.forEach(item => {
-                let listItem = document.createElement("div");
-                listItem.classList.add("suggestion-item");
+    card.onclick = () => openModal(item, type);
+    row.appendChild(card);
+  });
+}
 
-                let posterPath = item.poster_path 
-                    ? `https://image.tmdb.org/t/p/w92${item.poster_path}` 
-                    : "https://via.placeholder.com/92x138?text=No+Image";
 
-                listItem.innerHTML = `
-                    <img src="${posterPath}" alt="Poster">
-                    <span>${item.name || item.title}</span>
-                `;
+  // ====== SEARCH (multi) ======
+  function wireSearch(){
+    const input = document.getElementById('searchBox');
+    const list  = document.getElementById('suggList');
 
-                listItem.onclick = () => {
-                    document.getElementById("code").value = item.id;
-                    suggestions.innerHTML = "";
-                    fetchMovieDetails(item.id);
-                };
+    input.addEventListener('input', () => {
+      const q = input.value.trim();
+      if (debounceId) clearTimeout(debounceId);
+      if (!q){ list.style.display='none'; list.innerHTML=''; return; }
+      debounceId = setTimeout(()=> doSearch(q), 220);
+    });
 
-                suggestions.appendChild(listItem);
-            });
-        }
+    // Keyboard navigation
+    input.addEventListener('keydown', (e)=>{
+      const items = Array.from(list.querySelectorAll('.sugg-item'));
+      if (list.style.display !== 'block' || items.length === 0) return;
 
-        async function fetchMovieDetails(tmdbID) {
-            let type = document.getElementById("type").value;
-            let detailsType = type === "movie" ? "movie" : "tv";
-            let url = `https://api.themoviedb.org/3/${detailsType}/${tmdbID}?api_key=${TMDB_API_KEY}`;
+      if (e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = (activeIndex+1) % items.length; updateActive(items); }
+      else if (e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = (activeIndex-1+items.length) % items.length; updateActive(items); }
+      else if (e.key === 'Enter'){ e.preventDefault(); (items[activeIndex] || items[0])?.click(); }
+      else if (e.key === 'Escape'){ list.style.display='none'; activeIndex = -1; }
+    });
 
-            let response = await fetch(url);
-            let data = await response.json();
+    // Hide when clicking outside
+    document.addEventListener('click', (e)=>{
+      if (!list.contains(e.target) && e.target !== input){
+        list.style.display='none'; activeIndex = -1;
+      }
+    });
 
-            displayMovieDetails(data);
+    function updateActive(items){
+      items.forEach((el,i)=> el.classList.toggle('active', i===activeIndex));
+      items[activeIndex]?.scrollIntoView({block:'nearest'});
+    }
+  }
 
-            if (type === "tv") {
-                updateSeasonsDropdown(data.id, data.number_of_seasons);
-            }
-        }
+  async function doSearch(q){
+    const list  = document.getElementById('suggList');
+    list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">Searching…</div></div></div>`;
+    list.style.display = 'block';
 
-        function displayMovieDetails(data) {
-            let detailsDiv = document.getElementById("movieDetails");
+    try{
+      const url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`;
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      const results = (data.results || []).filter(r => r.media_type==='movie' || r.media_type==='tv').slice(0,10);
+      renderSuggestions(results);
+    }catch(e){
+      list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">Search error</div><div class="meta">Check network / API key</div></div></div>`;
+    }
+  }
 
-            let posterPath = data.poster_path 
-                ? `https://image.tmdb.org/t/p/w300${data.poster_path}` 
-                : "https://via.placeholder.com/300x450?text=No+Image";
+  function renderSuggestions(items){
+    const list  = document.getElementById('suggList');
+    list.innerHTML = "";
+    activeIndex = -1;
 
-            detailsDiv.innerHTML = `
-                <img src="${posterPath}" alt="Poster" class="poster">
-                <h3>${data.name || data.title}</h3>
-                <p><strong>Release Date:</strong> ${data.release_date || data.first_air_date}</p>
-                <p><strong>Rating:</strong> ⭐ ${data.vote_average.toFixed(1)} / 10</p>
-                <p><strong>Overview:</strong> ${data.overview}</p>
-            `;
-            detailsDiv.style.display = "block";
-        }
+    if (!items.length){
+      list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">No results</div></div></div>`;
+      return;
+    }
 
-        function updateSeasonsDropdown(showID, numSeasons) {
-            let seasonDropdown = document.getElementById("season");
-            seasonDropdown.innerHTML = ""; 
+    items.forEach(item=>{
+      const title = item.title || item.name || "Untitled";
+      const year  = (item.release_date || item.first_air_date || "").slice(0,4);
+      const poster = item.poster_path ? IMG92 + item.poster_path : "https://via.placeholder.com/92x138?text=No+Img";
 
-            for (let i = 1; i <= numSeasons; i++) {
-                let option = document.createElement("option");
-                option.value = i;
-                option.textContent = `Season ${i}`;
-                seasonDropdown.appendChild(option);
-            }
+      const li = document.createElement('div');
+      li.className = 'sugg-item';
+      li.innerHTML = `
+        <img src="${poster}" alt="">
+        <div class="t">
+          <div class="name">${title}</div>
+          <div class="meta">${item.media_type.toUpperCase()} ${year ? "• "+year : ""}</div>
+        </div>`;
+      li.addEventListener('click', ()=>{
+        document.getElementById('searchBox').value = title;
+        document.getElementById('suggList').style.display = 'none';
+        openModal(item, item.media_type); // reuse modal & play
+      });
+      list.appendChild(li);
+    });
 
-            updateEpisodesDropdown(showID, 1);
-        }
+    list.style.display = 'block';
+  }
 
-        async function updateEpisodesDropdown(showID, seasonNumber) {
-            let episodeDropdown = document.getElementById("episode");
-            episodeDropdown.innerHTML = ""; 
+  // ====== MODAL ======
+  function openModal(item, type){
+    const poster = item.poster_path ? IMG + item.poster_path : "https://via.placeholder.com/300x450?text=No+Image";
+    document.getElementById('mPoster').src = poster;
+    document.getElementById('mPoster').alt = item.title || item.name || "Poster";
+    document.getElementById('mTitle').textContent = item.title || item.name || "Untitled";
+    const date = item.release_date || item.first_air_date || "—";
+    document.getElementById('mMeta').textContent = `${(type||'movie').toUpperCase()} • ${date} • ⭐ ${(item.vote_average||0).toFixed(1)}`;
+    document.getElementById('mOverview').textContent = item.overview || "No overview available.";
 
-            let url = `https://api.themoviedb.org/3/tv/${showID}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`;
-            let response = await fetch(url);
-            let data = await response.json();
+    const id = item.id;
+    const playBtn = document.getElementById('playBtn');
+    playBtn.onclick = () => {
+      if(type === 'tv'){
+        const s = prompt("Season number?", "1"); if(s===null) return;
+        const e = prompt("Episode number?", "1"); if(e===null) return;
+        window.location.href = `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${encodeURIComponent(s)}&episode=${encodeURIComponent(e)}`;
+      }else{
+        window.location.href = `https://vidsrc.xyz/embed/movie?tmdb=${id}`;
+      }
+    };
 
-            data.episodes.forEach(ep => {
-                let option = document.createElement("option");
-                option.value = ep.episode_number;
-                option.textContent = `Episode ${ep.episode_number}`;
-                episodeDropdown.appendChild(option);
-            });
-        }
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+  document.getElementById('modal').addEventListener('click', (e)=>{
+    if(e.target.id === 'modal') closeModal();
+  });
 
-        function handleSeasonChange() {
-            let showID = document.getElementById("code").value;
-            let selectedSeason = document.getElementById("season").value;
-            updateEpisodesDropdown(showID, selectedSeason);
-        }
+// Smoothly scroll the row by one card at a time
+function scrollRow(dir = 1) {
+  const row  = document.getElementById('contentRow');
+  const card = row.querySelector('.card');
+  if (!card) return;
 
-        function redirect() {
-            let type = document.getElementById("type").value;
-            let code = document.getElementById("code").value.trim();
-            let season = document.getElementById("season").value.trim();
-            let episode = document.getElementById("episode").value.trim();
+  const gap = 12; // matches .row gap
+  const step = card.offsetWidth + gap;
+  row.scrollBy({ left: dir * step, behavior: 'smooth' });
 
-            if (code === "") {
-                alert("Please enter a valid code.");
-                return;
-            }
+  // Try to put keyboard focus on the next/prev card so Enter works on remotes
+  const cards = [...row.querySelectorAll('.card')];
+  if (cards.length) {
+    // Find the first fully visible card index
+    const idx = cards.findIndex(c => {
+      const r = c.getBoundingClientRect();
+      const container = row.getBoundingClientRect();
+      return r.left >= container.left - 2 && r.right <= container.right + 2;
+    });
+    const nextIndex = Math.max(0, Math.min(cards.length - 1, (idx === -1 ? 0 : idx) + dir));
+    setTimeout(() => cards[nextIndex]?.focus({preventScroll:true}), 250);
+  }
+}
 
-            let url = type === "movie"
-                ? (code.startsWith("tt") 
-                    ? `https://vidsrc.xyz/embed/movie?imdb=${code}` 
-                    : `https://vidsrc.xyz/embed/movie?tmdb=${code}`)
-                : (code.startsWith("tt") 
-                    ? `https://vidsrc.xyz/embed/tv?imdb=${code}&season=${season}&episode=${episode}`
-                    : `https://vidsrc.xyz/embed/tv?tmdb=${code}&season=${season}&episode=${episode}`);
+// Keyboard / remote support: Left/Right scroll, Enter to open focused card
+document.addEventListener('keydown', (e) => {
+  // Ignore if typing in inputs or modal is open
+  const modalOpen = document.getElementById('modal')?.classList.contains('open');
+  if (modalOpen) return;
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
 
-            window.location.href = url;
-        }
+  if (e.key === 'ArrowRight') { e.preventDefault(); scrollRow(1);  }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); scrollRow(-1); }
+  if (e.key === 'Enter') {
+    // If a card is focused, “click” it to open the modal
+    const el = document.activeElement;
+    if (el?.classList?.contains('card')) {
+      el.click();
+    } else {
+      // No focus? Click the most centered card
+      const row = document.getElementById('contentRow');
+      const cards = [...row.querySelectorAll('.card')];
+      if (!cards.length) return;
+      const mid = row.getBoundingClientRect().left + row.clientWidth / 2;
+      let best = cards[0], bestDist = Infinity;
+      cards.forEach(c => {
+        const r = c.getBoundingClientRect();
+        const center = (r.left + r.right) / 2;
+        const d = Math.abs(center - mid);
+        if (d < bestDist) { bestDist = d; best = c; }
+      });
+      best.click();
+    }
+  }
+});
 
-	function toggleTrending() {
-        const section = document.getElementById("trendingSection");
-        section.style.display = section.style.display === "none" ? "block" : "none";
-    	}
-
-    	async function fetchTrending() {
-        	const type = document.getElementById("trendingType").value;
-        	const time = document.getElementById("trendingTime").value;
-        	const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}`;
-
-        	const res = await fetch(url);
-        	const data = await res.json();
-        	const grid = document.getElementById("trendingGrid");
-        	grid.innerHTML = "";
-
-        	data.results.forEach(item => {
-            		const title = item.title || item.name;
-            		const id = item.id;
-            		const rating = item.vote_average?.toFixed(1) || "N/A";
-            		const poster = item.poster_path
-                		? `https://image.tmdb.org/t/p/w300${item.poster_path}`
-                		: "https://via.placeholder.com/300x450?text=No+Image";
-
-            		const card = document.createElement("div");
-            		card.style.width = "150px";
-            		card.style.background = document.body.classList.contains("dark-mode") ? "#333" : "#fff";
-            		card.style.color = document.body.classList.contains("dark-mode") ? "#fff" : "#000";
-            		card.style.borderRadius = "8px";
-            		card.style.overflow = "hidden";
-            		card.style.cursor = "pointer";
-            		card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
-            		card.style.transition = "transform 0.3s";
-
-            		card.innerHTML = `
-                		<img src="${poster}" alt="${title}" style="width: 100%; height: auto;">
-                		<div style="padding: 8px;">
-                    			<strong style="font-size: 14px;">${title}</strong><br>
-                    			<span style="font-size: 12px;">⭐ ${rating}</span>
-                		</div>
-            		`;
-
-            		card.onclick = () => {
-                		document.getElementById("code").value = id;
-                		fetchMovieDetails(id);
-                		window.scrollTo({ top: 0, behavior: "smooth" });
-            		};
-
-            		grid.appendChild(card);
-        	});
-    	}
 
 </script>
-
 </body>
 </html>
