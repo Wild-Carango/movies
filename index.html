@@ -1,11 +1,189 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Watch Movies & TV Shows</title>
-    <script>
-        const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b"; // Replace with your actual API key
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Carango TV - Watch Movies & TV Shows</title>
+<style>
+  :root{
+    --bg:#0f0f10; --fg:#e8e8e8; --muted:#a7a7a7;
+    --panel:#17181a; --panel-2:#1e2023;
+    --brand:#4f8cff; --chip:#2b2d31;
+    --radius:14px;
+  }
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+  a{color:inherit}
+  /* header */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:14px 18px; background:var(--panel); position:sticky; top:0; z-index:10;
+    border-bottom:1px solid #232428;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .brand svg{width:28px;height:28px}
+  .actions{display:flex;gap:10px}
+  .btn{
+    padding:10px 14px; background:var(--chip); color:var(--fg);
+    border:0; border-radius:999px; cursor:pointer; font-weight:600;
+  }
+  .btn:hover{filter:brightness(1.05)}
+  /* layout */
+  .shell{display:grid; grid-template-columns:320px 1fr; gap:20px; padding:20px; max-width:1280px; margin:0 auto}
+  .panel{background:var(--panel); border-radius:var(--radius); padding:16px; box-shadow:0 10px 20px rgba(0,0,0,.25)}
+  .side h2{margin:6px 0 12px 0; font-size:22px}
+  label{display:block; margin-top:12px; font-weight:600}
+  input[type="text"], select{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid #33363a;
+    background:var(--panel-2); color:var(--fg); outline:none;
+  }
+  .primary{background:var(--brand)}
+  .hint{color:var(--muted); font-size:13px}
+  /* content area */
+  .content{display:grid; grid-template-columns:420px 1fr; gap:20px}
+  #movieDetails.panel{min-height:420px}
+  #trendingSection{margin-top:0}
+  #controlsInline{display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px}
+  #trendingGrid{display:flex; flex-wrap:wrap; gap:16px; justify-content:flex-start}
+  .card{
+    width:172px; background:#111214; border:1px solid #222428; border-radius:12px; overflow:hidden; cursor:pointer;
+    transition:transform .2s ease, box-shadow .2s ease;
+  }
+  .card:hover{transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .card img{width:100%; height:auto; display:block}
+  .card .meta{padding:10px}
+  .card .title{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .card .sub{font-size:12px; color:var(--muted)}
+  .status{min-height:20px; margin:6px 0 0 0; color:var(--muted)}
+  /* skeletons */
+  .skel{width:172px;height:258px;border-radius:12px;background:linear-gradient(90deg,#202226 25%,#2a2d32 37%,#202226 63%);background-size:400% 100%;animation:sh 1.2s infinite}
+  @keyframes sh{0%{background-position:100% 0}100%{background-position:0 0}}
+  /* responsive */
+  @media (max-width:1100px){
+    .shell{grid-template-columns:1fr}
+    .content{grid-template-columns:1fr}
+  }
+
+/* Suggestions list items */
+.suggestion-item{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px; cursor:pointer; border-bottom:1px solid #222428;
+}
+.suggestion-item img{ width:46px; height:auto; border-radius:6px; }
+.suggestion-item:hover{ background:#1b1c1f; }
+
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <!-- tiny play icon -->
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    <span>Carango TV - Watch Movies & TV Shows</span>
+  </div>
+
+</header>
+
+<main class="shell">
+  <!-- Sidebar -->
+  <aside class="panel side">
+    <h2>Quick Play</h2>
+
+    <label for="type">Select Type</label>
+    <select id="type" onchange="toggleFields()">
+      <option value="movie">Movie</option>
+      <option value="tv">TV Shows</option>
+    </select>
+
+    <label for="code">Search or Enter TMDB/IMDb Code</label>
+    <input type="text" id="code" placeholder="Search Movies / TV Shows" onkeyup="fetchTMDBResults(this.value)">
+    <div id="suggestions" role="listbox" aria-label="Search results" class="panel" style="padding:0;margin-top:8px;"></div>
+
+    <div id="seasonField" style="display:none;">
+      <label for="season">Season</label>
+      <select id="season" onchange="handleSeasonChange()"></select>
+    </div>
+
+    <div id="episodeField" style="display:none;">
+      <label for="episode">Episode</label>
+      <select id="episode"></select>
+    </div>
+
+    <button class="btn primary" style="width:100%; margin-top:16px;" onclick="redirect()">▶ Watch Now</button>
+
+    <p class="hint">Tip: pick a result from search to auto-fill details.</p>
+  </aside>
+
+  <!-- Content -->
+<style>
+  .panel h2 {
+    margin: 6px 0 12px;
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+/* Make input and select boxes uniform */
+input[type="text"], select {
+    width: 100%;                /* same width */
+    padding: 10px;              /* same padding */
+    border-radius: 8px;         /* rounded corners */
+    border: 1px solid #ccc;     /* border */
+    font-size: 16px;            /* same font size */
+    background: #222;           /* background (dark mode feel) */
+    color: #fff;                /* text color */
+    box-sizing: border-box;     /* ensures padding doesn't affect width */
+}
+
+#movieDetails {
+    flex: 1;
+    max-width: 400px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #111;       /* match dark card background */
+    color: #fff;
+    display: flex;          /* center content */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;     /* center text below poster */
+}
+
+
+</style>
+
+  <section class="content">
+    <div id="movieDetails" class="panel"></div>
+    <section class="panel">
+    <h2>Trending</h2>
+      <!-- inline trending controls -->
+      <div id="controlsInline">
+        <div>
+          <label for="trendingType">Type</label>
+          <select id="trendingType">
+            <option value="movie">Movie</option>
+            <option value="tv">TV Show</option>
+          </select>
+        </div>
+        <div>
+          <label for="trendingTime">Time</label>
+          <select id="trendingTime">
+            <option value="day">Today</option>
+            <option value="week">This Week</option>
+          </select>
+        </div>
+        <button class="btn" onclick="fetchTrending()">Fetch</button>
+      </div>
+
+      <div id="status" class="status" aria-live="polite"></div>
+      <div id="trendingGrid"></div>
+    </section>
+  </section>
+</main>
+
+<script>
+const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b"; // Replace with your actual API key
 
         document.addEventListener("DOMContentLoaded", function () {
             loadTheme();
@@ -157,151 +335,59 @@
 
             window.location.href = url;
         }
-    </script>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f8f8f8;
-            color: #333;
-            transition: background 0.3s, color 0.3s;
-            text-align: left;
-        }
+	function toggleTrending() {
+        const section = document.getElementById("trendingSection");
+        section.style.display = section.style.display === "none" ? "block" : "none";
+    	}
 
-        .dark-mode {
-            background: #181818;
-            color: #ffffff;
-        }
+    	async function fetchTrending() {
+        	const type = document.getElementById("trendingType").value;
+        	const time = document.getElementById("trendingTime").value;
+        	const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}`;
 
-        button {
-            padding: 12px 18px;
-            border: none;
-            cursor: pointer;
-            font-size: 16px;
-            border-radius: 50px;
-            margin: 10px;
-            background: #007BFF;
-            color: #fff;
-            transition: 0.3s;
-        }
+        	const res = await fetch(url);
+        	const data = await res.json();
+        	const grid = document.getElementById("trendingGrid");
+        	grid.innerHTML = "";
 
-        .dark-mode button {
-            background: #444;
-        }
+        	data.results.forEach(item => {
+            		const title = item.title || item.name;
+            		const id = item.id;
+            		const rating = item.vote_average?.toFixed(1) || "N/A";
+            		const poster = item.poster_path
+                		? `https://image.tmdb.org/t/p/w300${item.poster_path}`
+                		: "https://via.placeholder.com/300x450?text=No+Image";
 
-        #suggestions {
-            border: 0px solid #ccc;
-            max-height: 300px;
-            overflow-y: auto;
-            background: white;
-            position: absolute;
-            width: 350px;
-            box-shadow: 2px 2px 8px rgba(0,0,0,0.2);
-        }
+            		const card = document.createElement("div");
+            		card.style.width = "150px";
+            		card.style.background = document.body.classList.contains("dark-mode") ? "#333" : "#fff";
+            		card.style.color = document.body.classList.contains("dark-mode") ? "#fff" : "#000";
+            		card.style.borderRadius = "8px";
+            		card.style.overflow = "hidden";
+            		card.style.cursor = "pointer";
+            		card.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+            		card.style.transition = "transform 0.3s";
 
-        .suggestion-item {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            cursor: pointer;
-            background: #ffffff;
-            color: #000;
-            border-bottom: 1px solid #ddd;
-            transition: 0.3s;
-        }
+            		card.innerHTML = `
+                		<img src="${poster}" alt="${title}" style="width: 100%; height: auto;">
+                		<div style="padding: 8px;">
+                    			<strong style="font-size: 14px;">${title}</strong><br>
+                    			<span style="font-size: 12px;">⭐ ${rating}</span>
+                		</div>
+            		`;
 
-        .suggestion-item:hover {
-            background: #f0f0f0;
-        } 
+            		card.onclick = () => {
+                		document.getElementById("code").value = id;
+                		fetchMovieDetails(id);
+                		window.scrollTo({ top: 0, behavior: "smooth" });
+            		};
 
+            		grid.appendChild(card);
+        	});
+    	}
 
-        .container {
-            display: flex;
-            align-items: flex-start;
-            gap: 20px;
-            justify-content: left;
-            margin-top: 20px;
-        }
-
-        .input-section {
-            max-width: 400px;
-            flex: 1;
-                                             
-        }
-
-        .poster {
-            width: 400px;
-            border-radius: 10px;
-            transition: 0.3s;
-        }
-
-        .poster:hover {
-            transform: scale(1.05);
-        }
-
-        #movieDetails {
-            flex: 1;
-            max-width: 400px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            background: #ffffff;
-            color: #000;
-            display: none;
-        }
-
-        .dark-mode #movieDetails {
-            background: #333;
-            color: white;
-        }
-
-        select {
-            width: 50%;
-            padding: 7px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 16px;
-        }
-
-        .dark-mode select {
-            background: #444;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="input-section">
-        <button onclick="toggleDarkMode()">🌙 Toggle Dark Mode</button>
-        <h2>Watch Movies & TV Shows</h2>
-           
-        <label for="type">Select Type:</label>
-        <select id="type" onchange="toggleFields()">
-            <option value="movie">Movie</option>
-            <option value="tv">TV Shows</option>
-        </select><br><br>
-
-        <label for="code">Search or Enter TMDB/IMDb Code:</label>
-        <input type="text" id="code" placeholder="Search Movies / TV Shows" onkeyup="fetchTMDBResults(this.value)">
-        <div id="suggestions"></div><br><br>
-
-        <div id="seasonField" style="display: none;">
-            <label for="season">Season:</label>
-            <select id="season" onchange="handleSeasonChange()"></select><br><br>
-        </div>
-
-        <div id="episodeField" style="display: none;">
-            <label for="episode">Episode:</label>
-            <select id="episode"></select><br><br>
-        </div>
-
-        <button onclick="redirect()">Watch Now</button>
-
-    </div>
-
-    <div id="movieDetails"></div>
-</div>
+</script>
 
 </body>
 </html>
