@@ -3,11 +3,9 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Template B — Netflix Style + Search</title>
+<title>Carango TV — Browse & Search</title>
 <style>
-  :root{
-    --bg:#181818; --panel:#141414; --fg:#fff; --muted:#bdbdbd; --accent:#e50914;
-  }
+  :root{ --bg:#181818; --panel:#141414; --fg:#fff; --muted:#bdbdbd; --accent:#e50914; }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,Segoe UI,Roboto,Arial,sans-serif}
 
@@ -20,10 +18,11 @@
   .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.2px}
   .brand svg{width:26px;height:26px;color:var(--accent)}
   .controls{display:flex;gap:10px;flex-wrap:wrap; justify-content:flex-end}
-  .chip, select{
+  .chip, select, .btn{
     background:#2a2a2a; color:#fff; border:0; border-radius:999px; padding:10px 14px; cursor:pointer; font-weight:600;
   }
   .chip.active{background:var(--accent)}
+  .btn.primary{background:var(--accent)}
 
   /* Search */
   .search-wrap{position:relative; display:flex; align-items:center;}
@@ -37,9 +36,7 @@
     background:#0f0f0f; border:1px solid #222; border-radius:12px; overflow:hidden;
     box-shadow:0 12px 30px rgba(0,0,0,.45); display:none;
   }
-  .sugg-item{
-    display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; border-bottom:1px solid #1f1f1f;
-  }
+  .sugg-item{display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; border-bottom:1px solid #1f1f1f;}
   .sugg-item:last-child{border-bottom:0}
   .sugg-item img{width:40px; height:60px; object-fit:cover; border-radius:6px}
   .sugg-item .t{display:flex; flex-direction:column}
@@ -49,62 +46,34 @@
 
   main{padding:22px}
   h2{margin:0 0 12px 4px; font-size:22px}
-  .row-wrap{overflow:hidden}
-  .row{
-    display:flex; gap:12px; overflow-x:auto; padding:6px 4px 12px; scroll-behavior:smooth;
+  .status{margin:10px 6px; color:var(--muted)}
+
+  /* Filters bar */
+  .filters{
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    background:#111; border:1px solid #222; border-radius:12px; padding:10px 12px; margin:10px 4px 16px;
   }
+  .filters label{font-size:13px; color:#cfcfcf; margin-right:6px}
+  .filters .group{display:flex; align-items:center; gap:8px}
+
+  /* Row & carousel */
+  .row-wrap{overflow:hidden}
+  .row{ display:flex; gap:12px; overflow-x:auto; padding:6px 4px 12px; scroll-behavior:smooth; scroll-snap-type:x mandatory; }
   .row::-webkit-scrollbar{height:8px} .row::-webkit-scrollbar-thumb{background:#444;border-radius:10px}
   .card{flex:0 0 auto; width:168px; background:#0f0f0f; border-radius:10px; overflow:hidden; cursor:pointer;
-        transition:transform .2s ease, box-shadow .2s ease; border:1px solid #222}
+        transition:transform .2s ease, box-shadow .2s ease; border:1px solid #222; scroll-snap-align:start}
   .card:hover{transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,.35)}
-  .card img{width:100%; height:auto; display:block}
+  .card img{width:100%; height:auto; display:block; aspect-ratio:2/3; object-fit:cover;}
   .meta{padding:8px 10px}
   .title{font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .sub{font-size:12px; color:var(--muted)}
-  .status{margin:10px 6px; color:var(--muted)}
-
-/* --- Carousel helpers --- */
-.carousel {
-  position: relative;
-}
-
-.row {
-  scroll-snap-type: x mandatory;     /* snap horizontally */
-}
-
-.card {
-  scroll-snap-align: start;           /* each card snaps at the left edge */
-}
-
-.arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 999px;
-  background: rgba(0,0,0,.55);
-  color: #fff;
-  cursor: pointer;
-  display: grid;
-  place-items: center;
-  z-index: 5;
-  transition: background .2s ease, transform .1s ease;
-}
-.arrow:hover { background: rgba(0,0,0,.75); }
-.arrow:active { transform: translateY(-50%) scale(.96); }
-
-.arrow.left  { left: 6px; }
-.arrow.right { right: 6px; }
-
-/* Visible focus for remote/keyboard users */
-.card:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-
+  .carousel{position:relative}
+  .arrow{
+    position:absolute; top:50%; transform:translateY(-50%); width:44px; height:44px; border:0; border-radius:999px;
+    background:rgba(0,0,0,.55); color:#fff; display:grid; place-items:center; z-index:5; cursor:pointer;
+  }
+  .arrow.left{left:6px} .arrow.right{right:6px}
+  .card:focus{ outline:2px solid var(--accent); outline-offset:-2px }
 
   /* Modal */
   .modal{position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.6); z-index:30}
@@ -114,11 +83,9 @@
   .sheet img{width:100%; border-radius:10px}
   .sheet h3{margin:0 0 6px}
   .sheet .overview{color:#d0d0d0; font-size:14px}
-  .btn{
-    background:var(--accent); color:#fff; border:0; border-radius:999px; padding:10px 16px; cursor:pointer; font-weight:700;
-  }
   .btn.secondary{background:#2a2a2a}
   .sheet-actions{display:flex; gap:10px; margin-top:12px}
+
   @media (max-width:720px){
     header{grid-template-columns:1fr; gap:10px}
     .controls{justify-content:flex-start}
@@ -129,9 +96,9 @@
 <body>
 
 <header>
-
-       <H2 style="color: #FF0000;">Carango Tv</H2>
-
+  <div class="brand">
+        <span><h2 style="color: #FF0000; padding-top: 10px;">Carango Tv</h2></span>
+  </div>
 
   <!-- SEARCH -->
   <div class="search-wrap">
@@ -143,7 +110,7 @@
     <button class="chip active" id="tabMovie" onclick="switchType('movie')">Movies</button>
     <button class="chip" id="tabTV" onclick="switchType('tv')">TV Shows</button>
 
-    <select id="timeSelect" onchange="reload()">
+    <select id="timeSelect" onchange="reloadTrending()">
       <option value="day">Today</option>
       <option value="week">This Week</option>
     </select>
@@ -152,15 +119,35 @@
 
 <main>
   <h2 id="sectionTitle">Trending Movies</h2>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="group">
+      <label for="genreSelect">Genre</label>
+      <select id="genreSelect">
+        <option value="">All Genres</option>
+      </select>
+    </div>
+
+    <div class="group">
+      <label for="sortSelect">Sort</label>
+      <select id="sortSelect">
+        <option value="date_desc">Newest → Oldest</option>
+        <option value="date_asc">Oldest → Newest</option>
+        <option value="rating_desc">Top Rated</option>
+      </select>
+    </div>
+
+    <button class="btn primary" onclick="applyFilters()">Apply</button>
+  </div>
+
   <div class="status" id="status"></div>
+
   <div class="row-wrap carousel">
-  <button class="arrow left"  aria-label="Previous" onclick="scrollRow(-1)">❮</button>
-  <div id="contentRow" class="row"></div>
-  <button class="arrow right" aria-label="Next"     onclick="scrollRow(1)">❯</button>
-</div>
-
-
-
+    <button class="arrow left"  aria-label="Previous" onclick="scrollRow(-1)">❮</button>
+    <div id="contentRow" class="row"></div>
+    <button class="arrow right" aria-label="Next" onclick="scrollRow(1)">❯</button>
+  </div>
 </main>
 
 <!-- Detail Modal -->
@@ -173,7 +160,7 @@
         <div class="sub" id="mMeta"></div>
         <p class="overview" id="mOverview"></p>
         <div class="sheet-actions">
-          <button class="btn" id="playBtn">▶ Play</button>
+          <button class="btn primary" id="playBtn">▶ Play</button>
           <button class="btn secondary" onclick="closeModal()">Close</button>
         </div>
       </div>
@@ -182,59 +169,205 @@
 </div>
 
 <script>
-  // ====== CONFIG ======
-  const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b";  // <-- replace
-  const IMG = "https://image.tmdb.org/t/p/w300";
-  const IMG92 = "https://image.tmdb.org/t/p/w92";
+/*** CONFIG ***/
+const TMDB_API_KEY = "915f1289f9c31479b780789c30ae6b2b";      // <— replace
+const IMG   = "https://image.tmdb.org/t/p/w300";
+const IMG92 = "https://image.tmdb.org/t/p/w92";
 
-  // ====== STATE ======
-  let currentType = "movie"; // 'movie' | 'tv'
-  let cached = [];           // last fetched results
-  let activeIndex = -1;      // keyboard selection in suggestions
-  let debounceId = null;
+// PAGINATION STATE
+let currentPage   = 1;
+let totalPages    = 1;
+let isLoadingMore = false;
+const seenIds = new Set();  // avoid duplicates across pages
 
-  // ====== INIT ======
-  document.addEventListener("DOMContentLoaded", ()=>{
-    reload();
-    wireSearch();
+/*** STATE ***/
+let currentType = "movie"; // 'movie' | 'tv'
+let cached = [];
+let activeIndex = -1;
+let debounceId = null;
+let lastFetchMode = "trending"; // 'trending' or 'discover'
+
+document.addEventListener("DOMContentLoaded", ()=>{
+  // 1) init UI data
+  wireSearch();
+  loadGenres();
+  reloadTrending();        // <-- fetch Trending page 1
+
+  // 2) infinite scroll on the row
+  const row = document.getElementById('contentRow');
+  const threshold = 100; // px from right edge
+  row.addEventListener('scroll', async ()=>{
+    if (row.scrollLeft + row.clientWidth >= row.scrollWidth - threshold) {
+      if (isLoadingMore) return;
+      if (currentPage >= totalPages) return;
+
+      isLoadingMore = true;
+      currentPage += 1;
+
+      if (lastFetchMode === 'discover') {
+        await discoverFetch(currentPage, true);   // append
+      } else {
+        await loadTrending(currentType, document.getElementById('timeSelect').value, true);
+      }
+    }
   });
+});
 
-  // ====== UI SWITCHES ======
-  function switchType(t){
-    currentType = t;
-    document.getElementById('tabMovie').classList.toggle('active', t==='movie');
-    document.getElementById('tabTV').classList.toggle('active', t==='tv');
-    reload();
+
+/*** TYPE SWITCH ***/
+function switchType(t){
+  currentType = t;
+  document.getElementById('tabMovie').classList.toggle('active', t==='movie');
+  document.getElementById('tabTV').classList.toggle('active', t==='tv');
+
+  // Update header title depending on mode
+  if (lastFetchMode === 'trending') {
+    document.getElementById("sectionTitle").textContent =
+      t==='movie' ? "Trending Movies" : "Trending TV Shows";
+    reloadTrending();
+  } else {
+    document.getElementById("sectionTitle").textContent =
+      t==='movie' ? "Browse Movies" : "Browse TV Shows";
+    applyFilters();
   }
-  function reload(){ loadTrending(currentType, document.getElementById('timeSelect').value); }
 
-  // ====== FETCH TRENDING ======
-  async function loadTrending(type="movie", time="day"){
-    const title = type==='movie' ? "Trending Movies" : "Trending TV Shows";
-    document.getElementById("sectionTitle").textContent = title;
-    setStatus("Loading…");
+  loadGenres(); // reload genres for the new type
+}
 
-    try{
-      const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}`;
-      const res = await fetch(url);
-      if(!res.ok) throw new Error(res.status+" "+res.statusText);
-      const data = await res.json();
-      cached = data.results || [];
+/*** GENRES ***/
+async function loadGenres(){
+  const sel = document.getElementById("genreSelect");
+  sel.innerHTML = `<option value="">All Genres</option>`;
+  try{
+    const url = `https://api.themoviedb.org/3/genre/${currentType}/list?api_key=${TMDB_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    (data.genres || []).forEach(g=>{
+      const opt = document.createElement('option');
+      opt.value = g.id; opt.textContent = g.name;
+      sel.appendChild(opt);
+    });
+  }catch(e){ console.warn("Genre load failed", e); }
+}
+
+function isReleased(item, type) {
+  const dateStr = type === 'tv' ? (item.first_air_date || '') : (item.release_date || '');
+  if (!dateStr) return false;                         
+  const today = new Date().toISOString().slice(0,10);
+  return dateStr <= today;                            
+}
+
+
+/*** TRENDING ***/
+function reloadTrending(){
+  lastFetchMode = "trending";
+  document.getElementById("sectionTitle").textContent =
+    currentType === 'movie' ? "Trending Movies" : "Trending TV Shows";
+  loadTrending(currentType, document.getElementById('timeSelect').value);
+}
+
+async function loadTrending(type="movie", time="day", append=false){
+  if (!append) { setStatus("Loading…"); currentPage = 1; }
+  try{
+    const url = `https://api.themoviedb.org/3/trending/${type}/${time}?api_key=${TMDB_API_KEY}&page=${currentPage}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(res.status+" "+res.statusText);
+    const data = await res.json();
+
+    // keep pagination info
+    totalPages = data.total_pages || 1;
+
+    // released-only
+    const pageItems = (data.results || []).filter(r => isReleased(r, type));
+
+    if (append) {
+      appendRow(pageItems, type);
+    } else {
+      cached = pageItems;
       renderRow(cached, type);
       setStatus("");
-    }catch(err){
-      console.error(err);
-      setStatus("Sorry, something went wrong. Check your TMDB key or network.");
     }
+  }catch(err){
+    console.error(err);
+    if (!append) setStatus("Sorry, something went wrong. Check your TMDB key or network.");
+  } finally {
+    isLoadingMore = false;
   }
-  function setStatus(msg){ document.getElementById('status').textContent = msg || ""; }
+}
 
-  // ====== RENDER ROW ======
-  function renderRow(items, type){
+/*** DISCOVER (Genres + Sort) ***/
+function applyFilters(){
+  lastFetchMode = "discover";
+  currentPage = 1;
+  document.getElementById("sectionTitle").textContent =
+    currentType === 'movie' ? "Browse Movies" : "Browse TV Shows";
+  discoverFetch();
+}
+
+
+async function discoverFetch(page=1, append=false){
+  const genreId = document.getElementById('genreSelect').value || "";
+  const sortKey = document.getElementById('sortSelect').value;
+
+  // default Top Rated
+  let sort_by = "vote_average.desc";
+  if (sortKey === "date_desc")  sort_by = currentType === 'movie' ? "primary_release_date.desc" : "first_air_date.desc";
+  if (sortKey === "date_asc")   sort_by = currentType === 'movie' ? "primary_release_date.asc"  : "first_air_date.asc";
+  if (sortKey === "rating_desc") sort_by = "vote_average.desc";
+
+  // only released
+  const today = new Date().toISOString().slice(0,10);
+  const dateGuard = currentType === 'movie'
+    ? `&primary_release_date.lte=${today}`
+    : `&first_air_date.lte=${today}`;
+
+  if (!append) setStatus("Loading…");
+
+  try{
+    const url = `https://api.themoviedb.org/3/discover/${currentType}?api_key=${TMDB_API_KEY}` +
+                `&language=en-US&page=${page}&include_adult=false` +
+                `&sort_by=${encodeURIComponent(sort_by)}` +
+                `${genreId ? `&with_genres=${genreId}` : ""}` +
+                dateGuard;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(res.status+" "+res.statusText);
+    const data = await res.json();
+
+    totalPages = data.total_pages || 1;
+
+    const pageItems = (data.results || []).filter(r => isReleased(r, currentType));
+    if (append) {
+      appendRow(pageItems, currentType);
+    } else {
+      cached = pageItems;
+      renderRow(cached, currentType);
+      setStatus("");
+    }
+  }catch(e){
+    console.error(e);
+    if (!append) setStatus("Could not fetch results. Try changing filters.");
+  } finally {
+    isLoadingMore = false;
+  }
+}
+
+/*** STATUS ***/
+function setStatus(msg){ document.getElementById('status').textContent = msg || ""; }
+
+/*** RENDER ***/
+function renderRow(items, type){
   const row = document.getElementById("contentRow");
   row.innerHTML = "";
+  seenIds.clear();                      // reset when replacing
+  appendRow(items, type);               // reuse appender to render first page
+}
 
-  items.forEach(item => {
+function appendRow(items, type){
+  const row = document.getElementById("contentRow");
+  items.forEach(item=>{
+    if (seenIds.has(item.id)) return;   // skip duplicates
+    seenIds.add(item.id);
+
     const title  = item.title || item.name || "Untitled";
     const rating = (item.vote_average || 0).toFixed(1);
     const poster = item.poster_path
@@ -243,152 +376,134 @@
 
     const card = document.createElement("div");
     card.className = "card";
-    card.setAttribute("tabindex", "0"); // focusable for remote/keyboard
-
+    card.setAttribute("tabindex","0");
     card.innerHTML = `
       <img src="${poster}" loading="lazy" alt="${title}">
       <div class="meta">
         <div class="title">${title}</div>
         <div class="sub">⭐ ${rating}</div>
-      </div>
-    `;
-
+      </div>`;
     card.onclick = () => openModal(item, type);
     row.appendChild(card);
   });
 }
 
+/*** SEARCH MULTI (autocomplete) ***/
+function wireSearch(){
+  const input = document.getElementById('searchBox');
+  const list  = document.getElementById('suggList');
 
-  // ====== SEARCH (multi) ======
-  function wireSearch(){
-    const input = document.getElementById('searchBox');
-    const list  = document.getElementById('suggList');
-
-    input.addEventListener('input', () => {
-      const q = input.value.trim();
-      if (debounceId) clearTimeout(debounceId);
-      if (!q){ list.style.display='none'; list.innerHTML=''; return; }
-      debounceId = setTimeout(()=> doSearch(q), 220);
-    });
-
-    // Keyboard navigation
-    input.addEventListener('keydown', (e)=>{
-      const items = Array.from(list.querySelectorAll('.sugg-item'));
-      if (list.style.display !== 'block' || items.length === 0) return;
-
-      if (e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = (activeIndex+1) % items.length; updateActive(items); }
-      else if (e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = (activeIndex-1+items.length) % items.length; updateActive(items); }
-      else if (e.key === 'Enter'){ e.preventDefault(); (items[activeIndex] || items[0])?.click(); }
-      else if (e.key === 'Escape'){ list.style.display='none'; activeIndex = -1; }
-    });
-
-    // Hide when clicking outside
-    document.addEventListener('click', (e)=>{
-      if (!list.contains(e.target) && e.target !== input){
-        list.style.display='none'; activeIndex = -1;
-      }
-    });
-
-    function updateActive(items){
-      items.forEach((el,i)=> el.classList.toggle('active', i===activeIndex));
-      items[activeIndex]?.scrollIntoView({block:'nearest'});
-    }
-  }
-
-  async function doSearch(q){
-    const list  = document.getElementById('suggList');
-    list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">Searching…</div></div></div>`;
-    list.style.display = 'block';
-
-    try{
-      const url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`;
-      const res = await fetch(url);
-      if(!res.ok) throw new Error(res.status);
-      const data = await res.json();
-      const results = (data.results || []).filter(r => r.media_type==='movie' || r.media_type==='tv').slice(0,10);
-      renderSuggestions(results);
-    }catch(e){
-      list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">Search error</div><div class="meta">Check network / API key</div></div></div>`;
-    }
-  }
-
-  function renderSuggestions(items){
-    const list  = document.getElementById('suggList');
-    list.innerHTML = "";
-    activeIndex = -1;
-
-    if (!items.length){
-      list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">No results</div></div></div>`;
-      return;
-    }
-
-    items.forEach(item=>{
-      const title = item.title || item.name || "Untitled";
-      const year  = (item.release_date || item.first_air_date || "").slice(0,4);
-      const poster = item.poster_path ? IMG92 + item.poster_path : "https://via.placeholder.com/92x138?text=No+Img";
-
-      const li = document.createElement('div');
-      li.className = 'sugg-item';
-      li.innerHTML = `
-        <img src="${poster}" alt="">
-        <div class="t">
-          <div class="name">${title}</div>
-          <div class="meta">${item.media_type.toUpperCase()} ${year ? "• "+year : ""}</div>
-        </div>`;
-      li.addEventListener('click', ()=>{
-        document.getElementById('searchBox').value = title;
-        document.getElementById('suggList').style.display = 'none';
-        openModal(item, item.media_type); // reuse modal & play
-      });
-      list.appendChild(li);
-    });
-
-    list.style.display = 'block';
-  }
-
-  // ====== MODAL ======
-  function openModal(item, type){
-    const poster = item.poster_path ? IMG + item.poster_path : "https://via.placeholder.com/300x450?text=No+Image";
-    document.getElementById('mPoster').src = poster;
-    document.getElementById('mPoster').alt = item.title || item.name || "Poster";
-    document.getElementById('mTitle').textContent = item.title || item.name || "Untitled";
-    const date = item.release_date || item.first_air_date || "—";
-    document.getElementById('mMeta').textContent = `${(type||'movie').toUpperCase()} • ${date} • ⭐ ${(item.vote_average||0).toFixed(1)}`;
-    document.getElementById('mOverview').textContent = item.overview || "No overview available.";
-
-    const id = item.id;
-    const playBtn = document.getElementById('playBtn');
-    playBtn.onclick = () => {
-      if(type === 'tv'){
-        const s = prompt("Season number?", "1"); if(s===null) return;
-        const e = prompt("Episode number?", "1"); if(e===null) return;
-        window.location.href = `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${encodeURIComponent(s)}&episode=${encodeURIComponent(e)}`;
-      }else{
-        window.location.href = `https://vidsrc.xyz/embed/movie?tmdb=${id}`;
-      }
-    };
-
-    document.getElementById('modal').classList.add('open');
-  }
-  function closeModal(){ document.getElementById('modal').classList.remove('open'); }
-  document.getElementById('modal').addEventListener('click', (e)=>{
-    if(e.target.id === 'modal') closeModal();
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    if (debounceId) clearTimeout(debounceId);
+    if (!q){ list.style.display='none'; list.innerHTML=''; return; }
+    debounceId = setTimeout(()=> doSearch(q), 220);
   });
 
-// Smoothly scroll the row by one card at a time
+  input.addEventListener('keydown', (e)=>{
+    const items = Array.from(list.querySelectorAll('.sugg-item'));
+    if (list.style.display !== 'block' || items.length === 0) return;
+
+    if (e.key === 'ArrowDown'){ e.preventDefault(); activeIndex = (activeIndex+1) % items.length; updateActive(items); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); activeIndex = (activeIndex-1+items.length) % items.length; updateActive(items); }
+    else if (e.key === 'Enter'){ e.preventDefault(); (items[activeIndex] || items[0])?.click(); }
+    else if (e.key === 'Escape'){ list.style.display='none'; activeIndex = -1; }
+  });
+
+  document.addEventListener('click', (e)=>{
+    if (!list.contains(e.target) && e.target !== input){
+      list.style.display='none'; activeIndex = -1;
+    }
+  });
+
+  function updateActive(items){
+    items.forEach((el,i)=> el.classList.toggle('active', i===activeIndex));
+    items[activeIndex]?.scrollIntoView({block:'nearest'});
+  }
+}
+async function doSearch(q){
+  const list  = document.getElementById('suggList');
+  list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">Searching…</div></div></div>`;
+  list.style.display = 'block';
+  try{
+    const url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(q)}&include_adult=false`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const results = (data.results || []).filter(r => r.media_type==='movie' || r.media_type==='tv').slice(0,10);
+    renderSuggestions(results);
+  }catch(e){
+    list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">Search error</div><div class="meta">Check network / API key</div></div></div>`;
+  }
+}
+function renderSuggestions(items){
+  const list  = document.getElementById('suggList');
+  list.innerHTML = "";
+  activeIndex = -1;
+  if (!items.length){
+    list.innerHTML = `<div class="sugg-item"><div class="t"><div class="name">No results</div></div></div>`;
+    return;
+  }
+  items.forEach(item=>{
+    const title = item.title || item.name || "Untitled";
+    const year  = (item.release_date || item.first_air_date || "").slice(0,4);
+    const poster = item.poster_path ? IMG92 + item.poster_path : "https://via.placeholder.com/92x138?text=No+Img";
+
+    const li = document.createElement('div');
+    li.className = 'sugg-item';
+    li.innerHTML = `
+      <img src="${poster}" alt="">
+      <div class="t">
+        <div class="name">${title}</div>
+        <div class="meta">${item.media_type.toUpperCase()} ${year ? "• "+year : ""}</div>
+      </div>`;
+    li.addEventListener('click', ()=>{
+      document.getElementById('searchBox').value = title;
+      document.getElementById('suggList').style.display = 'none';
+      openModal(item, item.media_type);
+    });
+    list.appendChild(li);
+  });
+  list.style.display = 'block';
+}
+
+/*** MODAL & PLAY ***/
+function openModal(item, type){
+  const poster = item.poster_path ? IMG + item.poster_path : "https://via.placeholder.com/300x450?text=No+Image";
+  document.getElementById('mPoster').src = poster;
+  document.getElementById('mPoster').alt = item.title || item.name || "Poster";
+  document.getElementById('mTitle').textContent = item.title || item.name || "Untitled";
+  const date = item.release_date || item.first_air_date || "—";
+  document.getElementById('mMeta').textContent = `${(type||'movie').toUpperCase()} • ${date} • ⭐ ${(item.vote_average||0).toFixed(1)}`;
+  document.getElementById('mOverview').textContent = item.overview || "No overview available.";
+
+  const id = item.id;
+  const playBtn = document.getElementById('playBtn');
+  playBtn.onclick = () => {
+    if(type === 'tv'){
+      const s = prompt("Season number?", "1"); if(s===null) return;
+      const e = prompt("Episode number?", "1"); if(e===null) return;
+      window.location.href = `https://vidsrc.xyz/embed/tv?tmdb=${id}&season=${encodeURIComponent(s)}&episode=${encodeURIComponent(e)}`;
+    }else{
+      window.location.href = `https://vidsrc.xyz/embed/movie?tmdb=${id}`;
+    }
+  };
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', (e)=>{ if(e.target.id === 'modal') closeModal(); });
+
+/*** CAROUSEL: buttons + keyboard/remote ***/
 function scrollRow(dir = 1) {
   const row  = document.getElementById('contentRow');
   const card = row.querySelector('.card');
   if (!card) return;
-
-  const gap = 12; // matches .row gap
+  const gap = 12;
   const step = card.offsetWidth + gap;
   row.scrollBy({ left: dir * step, behavior: 'smooth' });
 
-  // Try to put keyboard focus on the next/prev card so Enter works on remotes
   const cards = [...row.querySelectorAll('.card')];
   if (cards.length) {
-    // Find the first fully visible card index
     const idx = cards.findIndex(c => {
       const r = c.getBoundingClientRect();
       const container = row.getBoundingClientRect();
@@ -398,10 +513,7 @@ function scrollRow(dir = 1) {
     setTimeout(() => cards[nextIndex]?.focus({preventScroll:true}), 250);
   }
 }
-
-// Keyboard / remote support: Left/Right scroll, Enter to open focused card
 document.addEventListener('keydown', (e) => {
-  // Ignore if typing in inputs or modal is open
   const modalOpen = document.getElementById('modal')?.classList.contains('open');
   if (modalOpen) return;
   const tag = (document.activeElement?.tagName || '').toLowerCase();
@@ -410,29 +522,10 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') { e.preventDefault(); scrollRow(1);  }
   if (e.key === 'ArrowLeft')  { e.preventDefault(); scrollRow(-1); }
   if (e.key === 'Enter') {
-    // If a card is focused, “click” it to open the modal
     const el = document.activeElement;
-    if (el?.classList?.contains('card')) {
-      el.click();
-    } else {
-      // No focus? Click the most centered card
-      const row = document.getElementById('contentRow');
-      const cards = [...row.querySelectorAll('.card')];
-      if (!cards.length) return;
-      const mid = row.getBoundingClientRect().left + row.clientWidth / 2;
-      let best = cards[0], bestDist = Infinity;
-      cards.forEach(c => {
-        const r = c.getBoundingClientRect();
-        const center = (r.left + r.right) / 2;
-        const d = Math.abs(center - mid);
-        if (d < bestDist) { bestDist = d; best = c; }
-      });
-      best.click();
-    }
+    if (el?.classList?.contains('card')) el.click();
   }
 });
-
-
 </script>
 </body>
 </html>
