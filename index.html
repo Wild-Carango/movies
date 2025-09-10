@@ -597,6 +597,45 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+document.addEventListener('keydown', (e) => {
+  const modalOpen = document.getElementById('modal')?.classList.contains('open');
+  if (modalOpen) return;
+  const tag = (document.activeElement?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+  const row = document.getElementById('contentRow');
+  const cards = [...row.querySelectorAll('.card')];
+  if (!cards.length) return;
+
+  // current index
+  const idx = cards.indexOf(document.activeElement);
+
+  if (row.classList.contains('horizontal')) {
+    // ---- HORIZONTAL MODE ----
+    if (e.key === 'ArrowRight') { e.preventDefault(); scrollRow(1); }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); scrollRow(-1); }
+  } else if (row.classList.contains('vertical')) {
+    // ---- VERTICAL MODE ----
+    if (e.key === 'ArrowDown' && idx !== -1) {
+      e.preventDefault();
+      const next = cards[idx + 1];
+      next?.focus();
+    }
+    if (e.key === 'ArrowUp' && idx !== -1) {
+      e.preventDefault();
+      const prev = cards[idx - 1];
+      prev?.focus();
+    }
+  }
+
+  // open with Enter
+  if (e.key === 'Enter') {
+    const el = document.activeElement;
+    if (el?.classList?.contains('card')) el.click();
+  }
+});
+
+
 function toggleLayoutMode() {
   const row = document.getElementById("contentRow");
   const btn = document.getElementById("layoutToggleBtn");
