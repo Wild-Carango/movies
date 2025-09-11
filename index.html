@@ -373,7 +373,23 @@ function openModal(item, type){
   document.getElementById("mTitle").textContent = item.title || item.name;
   document.getElementById("mMeta").textContent = `${type.toUpperCase()} • ${item.release_date || item.first_air_date || "Unknown"} • ⭐ ${(item.vote_average||0).toFixed(1)}`;
   document.getElementById("mOverview").textContent = item.overview || "No description available.";
+
+  // ✅ Fix: wire up play button to vidsrc
+  const playBtn = document.getElementById("playBtn");
+  if(type === "movie"){
+    playBtn.onclick = () => {
+      window.location.href = `https://vidsrc.xyz/embed/movie/${item.id}`;
+    };
+  } else if(type === "tv"){
+    playBtn.onclick = () => {
+      window.location.href = `https://vidsrc.xyz/embed/tv/${item.id}`;
+    };
+  } else {
+    playBtn.onclick = null; // no action if unknown type
+  }
 }
+
+
 function closeModal(){
   document.getElementById("modal").classList.remove("open");
 }
