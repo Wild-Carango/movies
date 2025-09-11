@@ -44,20 +44,21 @@
   }
   #searchBox::placeholder{color:#9a9a9a}
   .sugg {
-    position: absolute;
-    left: 0;
-    top: calc(100% + 6px);
-    width: 100%;
-    max-width: 560px;
-    background: #0f0f0f;
-    border: 1px solid #222;
-    border-radius: 12px;
-    overflow-y: auto;
-    max-height: 700px;
-    box-shadow: 0 12px 30px rgba(0,0,0,.45);
-    display: none;
-    z-index: 2000;
-  }
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  width: 100%;
+  max-width: 560px;
+  background: #0f0f0f;
+  border: 1px solid #222;
+  border-radius: 12px;
+  overflow-y: auto;
+  max-height: 700px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.45);
+  display: none;
+  z-index: 9999; /* higher than cards & header */
+}
+
   .sugg::-webkit-scrollbar { width: 8px; }
   .sugg::-webkit-scrollbar-thumb { background: #444; border-radius: 6px; }
   .sugg-item{display:flex; gap:10px; align-items:center; padding:8px 10px; cursor:pointer; border-bottom:1px solid #1f1f1f;}
@@ -190,6 +191,7 @@ let cached=[],activeIndex=-1,debounceId=null,lastFetchMode="trending";
 const seenIds=new Set();
 
 document.addEventListener("DOMContentLoaded", ()=>{
+  wireSearch();
   loadGenres();
   reloadTrending();
 
@@ -374,6 +376,63 @@ function openModal(item, type){
 }
 function closeModal(){
   document.getElementById("modal").classList.remove("open");
+}
+</script>
+
+<script>
+/*** SEARCH ***/
+function wireSearch(){
+  const box = document.getElementById("searchBox");
+  const list = document.getElementById("suggList");
+
+  box.addEventListener("input", async ()=>{
+    const q = box.value.trim();
+    if(!q){ list.style.display="none"; return; }
+
+    try {
+      // fetch up to 3 pages of results (≈60 items)
+      let allResults = [];
+      for(let p=1; p<=3; p++){
+        const url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(q)}&page=${p}&include_adult=false`;
+        const res = await fetch(url);
+        if(!res.ok) break;
+        const data = await res.json();
+        if(!data.results?.length) break;
+        allResults = allResults.concat(data.results);
+        if(p >= (data.total_pages || 1)) break;
+      }
+
+      // build suggestion list
+      list.innerHTML = "";
+      allResults.forEach(item=>{
+        if(!item.title && !item.name) return;
+        const title = item.title || item.name;
+        const poster = item.poster_path ? IMG92+item.poster_path : "https://via.placeholder.com/92x138?text=No+Image";
+        const li = document.createElement("div");
+        li.className="sugg-item";
+        li.innerHTML = `
+          <img src="${poster}" alt="">
+          <div class="t">
+            <div class="name">${title}</div>
+            <div class="meta">${(item.media_type||"").toUpperCase()} • ${(item.release_date||item.first_air_date||"")}</div>
+          </div>`;
+        li.onclick = ()=>{ openModal(item, item.media_type); list.style.display="none"; };
+        list.appendChild(li);
+      });
+
+      list.style.display = allResults.length ? "block" : "none";
+    } catch(e){
+      console.error("Search failed", e);
+      list.style.display="none";
+    }
+  });
+
+  // hide when clicking outside
+  document.addEventListener("click",(e)=>{
+    if(!list.contains(e.target) && e.target!==box){
+      list.style.display="none";
+    }
+  });
 }
 </script>
 
