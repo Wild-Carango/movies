@@ -95,15 +95,15 @@
     .sheet-wrap{grid-template-columns:1fr}
   }
 
-  /* #LABEL: TrailerStyles */
+  /* Trailer */
   .trailer{ margin-top:10px; border:1px solid #222; border-radius:10px; overflow:hidden; background:#000; position:relative; aspect-ratio:16/9; display:none; }
   .trailer img{ width:100%; height:100%; object-fit:cover; display:block; }
   .trailer button.play{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(to bottom, rgba(0,0,0,.05), rgba(0,0,0,.45)); border:0; cursor:pointer; }
-  .trailer button.play::before{ content:"▶"; font-size:48px; line-height:1; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.6); }
+  .trailer button.play::before{ content:"▶"; font-size:48px; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.6); }
   .trailer .badge{ position:absolute; top:8px; left:8px; background:#e50914; color:#fff; font-size:12px; padding:4px 8px; border-radius:999px; }
   .trailer iframe{ width:100%; height:100%; border:0; display:block; }
 
-  /* #LABEL: PlayerOverlayStyles */
+  /* Player overlay */
   .player-overlay{position:fixed; inset:0; background:#000; display:none; z-index:9999;}
   .player-overlay.open{display:grid; grid-template-rows:auto 1fr}
   .player-bar{display:flex; gap:10px; align-items:center; padding:10px 12px; background:#0f0f0f; border-bottom:1px solid #222; color:#fff}
@@ -159,10 +159,6 @@
 
   <div class="status" id="status"></div>
   <div id="contentRow" class="row vertical"></div>
-
-  <!-- Load More + sentinel for infinite scroll -->
-  <button id="loadMore" class="btn" style="display:none;margin:18px auto;display:block;">Load more</button>
-  <div id="sentinel" style="height:1px"></div>
 </main>
 
 <!-- Detail Modal -->
@@ -176,7 +172,7 @@
         <div id="trailerWrap" class="trailer" aria-label="Trailer preview"></div>
         <p class="overview" id="mOverview"></p>
 
-        <!-- #LABEL: ModalControls (TV-only S/E controls) -->
+        <!-- TV-only S/E controls -->
         <div class="season-episode" id="tvControls">
           <label for="seasonSelect">Season:</label>
           <select id="seasonSelect" disabled>
@@ -198,7 +194,7 @@
   </div>
 </div>
 
-<!-- #LABEL: PlayerOverlay -->
+<!-- Player Overlay -->
 <div id="playerOverlay" class="player-overlay" aria-label="Episode Player">
   <div class="player-bar">
     <strong id="playerTitle">Playing</strong>
@@ -229,34 +225,35 @@ document.addEventListener("DOMContentLoaded", ()=>{
   loadGenres();
   reloadTrending();
 
-  /* Infinite load: IntersectionObserver + Load More fallback */
-  const sentinel    = document.getElementById('sentinel');
-  const loadMoreBtn = document.getElementById('loadMore');
+  // --- PURE INFINITE SCROLL (no buttons) ---
+  const THRESHOLD = 600; // px from bottom
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
 
-  async function loadNextPage() {
+  async function onScroll(){
+    // Use documentElement metrics for reliability across browsers
+    const doc = document.documentElement;
+    const scrolled = window.scrollY || doc.scrollTop;
+    const viewH = doc.clientHeight;           // viewport height
+    const fullH = doc.scrollHeight;           // full page height
+
     if (isLoadingMore || currentPage >= totalPages) return;
+    if (viewH + scrolled < fullH - THRESHOLD) return;
+
     isLoadingMore = true;
     currentPage += 1;
 
-    try {
-      if (lastFetchMode === 'discover') {
+    try{
+      if(lastFetchMode==='discover'){
         await discoverFetch(currentPage, true);
       } else {
         await loadTrending(currentType, document.getElementById('timeSelect').value, true);
       }
     } finally {
       isLoadingMore = false;
-      loadMoreBtn.style.display = currentPage < totalPages ? 'block' : 'none';
     }
   }
-
-  const io = new IntersectionObserver((entries) => {
-    if (entries.some(e => e.isIntersecting)) loadNextPage();
-  }, { rootMargin: '800px 0px' });
-
-  io.observe(sentinel);
-  loadMoreBtn.onclick = loadNextPage;
-});
+}); // DOMContentLoaded
 
 /*** TYPE SWITCH ***/
 function switchType(t){
@@ -413,7 +410,7 @@ function appendRow(items, type){
   });
 }
 
-/*** ===== TV HELPERS (Seasons/Episodes & Play binding) ===== ***/
+/*** TV HELPERS (Seasons/Episodes & Play binding) ***/
 const tvControls = document.getElementById('tvControls');
 const seasonSelect = document.getElementById('seasonSelect');
 const episodeSelect = document.getElementById('episodeSelect');
@@ -455,8 +452,8 @@ async function loadEpisodes(tvId, seasonNumber){
   if (eps.length) episodeSelect.value = eps[0].episode_number;
 }
 
-/* #LABEL: TrailerHelpers */
-async function fetchTrailerKey(tmdbId, type){ // type: "movie" | "tv"
+/* Trailer helpers */
+async function fetchTrailerKey(tmdbId, type){
   const url = `https://api.themoviedb.org/3/${type}/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=en-US`;
   const data = await fetch(url).then(r=>r.json()).catch(()=>({results:[]}));
   const vids = data.results || [];
@@ -485,7 +482,7 @@ function showTrailerThumb(youtubeKey){
   };
 }
 
-/* #LABEL: AutoNextEngine */
+/* AutoNext Player */
 const playerEl = {
   wrap: document.getElementById('playerOverlay'),
   frame: document.getElementById('playerFrame'),
