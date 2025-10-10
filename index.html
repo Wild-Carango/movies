@@ -65,7 +65,7 @@
   .filters label{font-size:13px; color:#cfcfcf; margin-right:6px}
   .filters .group{display:flex; align-items:center; gap:8px}
 
-  /* Vertical layout only */
+  /* Grid */
   .row.vertical { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; padding: 6px 4px 12px; }
   .card { background:#0f0f0f; border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; border:1px solid #222; }
   .card:hover{transform:translateY(-2px); box-shadow:0 10px 30px rgba(0,0,0,.35)}
@@ -95,28 +95,23 @@
     .sheet-wrap{grid-template-columns:1fr}
   }
 
-/* #LABEL: TrailerStyles */
-.trailer{ margin-top:10px; border:1px solid #222; border-radius:10px; overflow:hidden;
-  background:#000; position:relative; aspect-ratio:16/9; display:none; }
-.trailer img{ width:100%; height:100%; object-fit:cover; display:block; }
-.trailer button.play{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-  background:linear-gradient(to bottom, rgba(0,0,0,.05), rgba(0,0,0,.45)); border:0; cursor:pointer; }
-.trailer button.play::before{ content:"▶"; font-size:48px; line-height:1; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.6); }
-.trailer .badge{ position:absolute; top:8px; left:8px; background:#e50914; color:#fff; font-size:12px;
-  padding:4px 8px; border-radius:999px; }
-.trailer iframe{ width:100%; height:100%; border:0; display:block; }
+  /* #LABEL: TrailerStyles */
+  .trailer{ margin-top:10px; border:1px solid #222; border-radius:10px; overflow:hidden; background:#000; position:relative; aspect-ratio:16/9; display:none; }
+  .trailer img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .trailer button.play{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(to bottom, rgba(0,0,0,.05), rgba(0,0,0,.45)); border:0; cursor:pointer; }
+  .trailer button.play::before{ content:"▶"; font-size:48px; line-height:1; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,.6); }
+  .trailer .badge{ position:absolute; top:8px; left:8px; background:#e50914; color:#fff; font-size:12px; padding:4px 8px; border-radius:999px; }
+  .trailer iframe{ width:100%; height:100%; border:0; display:block; }
 
-/* #LABEL: PlayerOverlayStyles */
-.player-overlay{position:fixed; inset:0; background:#000; display:none; z-index:9999;}
-.player-overlay.open{display:grid; grid-template-rows:auto 1fr}
-.player-bar{display:flex; gap:10px; align-items:center; padding:10px 12px; background:#0f0f0f; border-bottom:1px solid #222; color:#fff}
-.player-bar .spacer{flex:1}
-.player-bar button, .player-bar input[type="checkbox"]{cursor:pointer}
-.player-frame{width:100%; height:100%; border:0}
-.badge-lite{background:#222; padding:4px 8px; border-radius:999px; font-size:12px}
-.timer{min-width:92px; text-align:center; font-variant-numeric:tabular-nums}
-
-
+  /* #LABEL: PlayerOverlayStyles */
+  .player-overlay{position:fixed; inset:0; background:#000; display:none; z-index:9999;}
+  .player-overlay.open{display:grid; grid-template-rows:auto 1fr}
+  .player-bar{display:flex; gap:10px; align-items:center; padding:10px 12px; background:#0f0f0f; border-bottom:1px solid #222; color:#fff}
+  .player-bar .spacer{flex:1}
+  .player-bar button, .player-bar input[type="checkbox"]{cursor:pointer}
+  .player-frame{width:100%; height:100%; border:0}
+  .badge-lite{background:#222; padding:4px 8px; border-radius:999px; font-size:12px}
+  .timer{min-width:92px; text-align:center; font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -164,6 +159,10 @@
 
   <div class="status" id="status"></div>
   <div id="contentRow" class="row vertical"></div>
+
+  <!-- Load More + sentinel for infinite scroll -->
+  <button id="loadMore" class="btn" style="display:none;margin:18px auto;display:block;">Load more</button>
+  <div id="sentinel" style="height:1px"></div>
 </main>
 
 <!-- Detail Modal -->
@@ -174,7 +173,7 @@
       <div>
         <h3 id="mTitle"></h3>
         <div class="sub" id="mMeta"></div>
-	<div id="trailerWrap" class="trailer" aria-label="Trailer preview"></div>
+        <div id="trailerWrap" class="trailer" aria-label="Trailer preview"></div>
         <p class="overview" id="mOverview"></p>
 
         <!-- #LABEL: ModalControls (TV-only S/E controls) -->
@@ -230,21 +229,34 @@ document.addEventListener("DOMContentLoaded", ()=>{
   loadGenres();
   reloadTrending();
 
-  const threshold = 400; // px from bottom
-  window.addEventListener('scroll', async ()=>{
-    if(window.innerHeight + window.scrollY < document.body.offsetHeight - threshold) return;
-    if(isLoadingMore || currentPage >= totalPages) return;
+  /* Infinite load: IntersectionObserver + Load More fallback */
+  const sentinel    = document.getElementById('sentinel');
+  const loadMoreBtn = document.getElementById('loadMore');
 
+  async function loadNextPage() {
+    if (isLoadingMore || currentPage >= totalPages) return;
     isLoadingMore = true;
-    currentPage++;
+    currentPage += 1;
 
-    if(lastFetchMode==='discover'){
-      await discoverFetch(currentPage, true);
-    } else {
-      await loadTrending(currentType, document.getElementById('timeSelect').value, true);
+    try {
+      if (lastFetchMode === 'discover') {
+        await discoverFetch(currentPage, true);
+      } else {
+        await loadTrending(currentType, document.getElementById('timeSelect').value, true);
+      }
+    } finally {
+      isLoadingMore = false;
+      loadMoreBtn.style.display = currentPage < totalPages ? 'block' : 'none';
     }
-  });
-}); // ✅ properly closed
+  }
+
+  const io = new IntersectionObserver((entries) => {
+    if (entries.some(e => e.isIntersecting)) loadNextPage();
+  }, { rootMargin: '800px 0px' });
+
+  io.observe(sentinel);
+  loadMoreBtn.onclick = loadNextPage;
+});
 
 /*** TYPE SWITCH ***/
 function switchType(t){
@@ -448,7 +460,6 @@ async function fetchTrailerKey(tmdbId, type){ // type: "movie" | "tv"
   const url = `https://api.themoviedb.org/3/${type}/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=en-US`;
   const data = await fetch(url).then(r=>r.json()).catch(()=>({results:[]}));
   const vids = data.results || [];
-  // Prefer Official YouTube Trailer; then any YouTube Trailer; then any YouTube video
   const pick = vids.find(v=>v.site==='YouTube' && v.type==='Trailer' && v.official)
            || vids.find(v=>v.site==='YouTube' && v.type==='Trailer')
            || vids.find(v=>v.site==='YouTube');
@@ -501,7 +512,6 @@ async function getSeasonEpisodeCount(tvId, seasonNumber){
 }
 
 async function getEpisodeRuntime(tvId, s, e){
-  // returns runtime in minutes; fallback to 42 if missing
   const data = await fetch(`https://api.themoviedb.org/3/tv/${tvId}/season/${s}/episode/${e}?api_key=${TMDB_API_KEY}&language=en-US`).then(r=>r.json()).catch(()=>({}));
   return (data.runtime && Number.isFinite(data.runtime)) ? data.runtime : 42;
 }
@@ -519,7 +529,6 @@ async function scheduleAutoNext(){
   if(!playerEl.auto.checked) { playerEl.timer.textContent = '--:--'; return; }
 
   const runtimeMin = await getEpisodeRuntime(curTV.id, curTV.season, curTV.episode);
-  // Subtract a small buffer so we switch ~5s before credits
   secondsLeft = Math.max(10, Math.round(runtimeMin*60 - 5));
   playerEl.timer.textContent = formatMMSS(secondsLeft);
 
@@ -543,18 +552,15 @@ async function loadEpisode(tvId, s, e){
 async function getNextPair(tvId, s, e){
   const count = await getSeasonEpisodeCount(tvId, s);
   if(e < count) return {s, e:e+1};
-  // move to next season if available
-  // ask TMDB for show meta to know total seasons (excluding specials)
   const meta = await fetch(`https://api.themoviedb.org/3/tv/${tvId}?api_key=${TMDB_API_KEY}&language=en-US`).then(r=>r.json());
   const seasons = (meta.seasons||[]).filter(x=>x.season_number>0).map(x=>x.season_number).sort((a,b)=>a-b);
   const idx = seasons.indexOf(Number(s));
   if (idx>=0 && idx < seasons.length-1) return {s:seasons[idx+1], e:1};
-  return null; // no more episodes
+  return null;
 }
 
 async function getPrevPair(tvId, s, e){
   if(e > 1) return {s, e:e-1};
-  // go to previous season's last episode
   const meta = await fetch(`https://api.themoviedb.org/3/tv/${tvId}?api_key=${TMDB_API_KEY}&language=en-US`).then(r=>r.json());
   const seasons = (meta.seasons||[]).filter(x=>x.season_number>0).map(x=>x.season_number).sort((a,b)=>a-b);
   const idx = seasons.indexOf(Number(s));
@@ -566,17 +572,8 @@ async function getPrevPair(tvId, s, e){
   return null;
 }
 
-async function playNext(){
-  const p = await getNextPair(curTV.id, curTV.season, curTV.episode);
-  if(!p){ playerEl.timer.textContent='Done'; return; }
-  await loadEpisode(curTV.id, p.s, p.e);
-}
-
-async function playPrev(){
-  const p = await getPrevPair(curTV.id, curTV.season, curTV.episode);
-  if(!p) return;
-  await loadEpisode(curTV.id, p.s, p.e);
-}
+async function playNext(){ const p = await getNextPair(curTV.id, curTV.season, curTV.episode); if(!p){ playerEl.timer.textContent='Done'; return; } await loadEpisode(curTV.id, p.s, p.e); }
+async function playPrev(){ const p = await getPrevPair(curTV.id, curTV.season, curTV.episode); if(!p) return; await loadEpisode(curTV.id, p.s, p.e); }
 
 function openPlayer(tvId, title, s, e){
   curTV = { id:tvId, season:s, episode:e, episodeCountBySeason:new Map(), title:title||'' };
@@ -599,7 +596,6 @@ playerEl.prev.onclick = playPrev;
 playerEl.auto.onchange = scheduleAutoNext;
 window.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopCountdown(); else scheduleAutoNext(); });
 
-
 /*** MODAL ***/
 function openModal(item, type){
   const modalType = (type && type !== 'multi') ? type : (item.media_type || 'movie');
@@ -610,51 +606,44 @@ function openModal(item, type){
   document.getElementById("mMeta").textContent = `${modalType.toUpperCase()} • ${item.release_date || item.first_air_date || "Unknown"} • ⭐ ${(item.vote_average||0).toFixed(1)}`;
   document.getElementById("mOverview").textContent = item.overview || "No description available.";
 
-  // NEW: reset trailer, then fetch and show
   const trailerWrap = document.getElementById('trailerWrap');
   trailerWrap.style.display = 'none';
   trailerWrap.innerHTML = '';
   fetchTrailerKey(item.id, modalType).then(showTrailerThumb);
 
   const playBtn = document.getElementById("playBtn");
-  // ... (rest of your existing TV/Movie play logic remains unchanged)
-
 
   if(modalType === "tv"){
-  tvControls.style.display = 'flex';
-  loadSeasons(item.id);
+    tvControls.style.display = 'flex';
+    loadSeasons(item.id);
 
-  const updatePlay = () => {
-    const s = parseInt(seasonSelect.value || '1', 10);
-    const e = parseInt(episodeSelect.value || '1', 10);
-    playBtn.dataset.s = s; playBtn.dataset.e = e;
-  };
-  seasonSelect.onchange = async () => { await loadEpisodes(item.id, seasonSelect.value); updatePlay(); };
-  episodeSelect.onchange = updatePlay;
-  updatePlay();
+    const updatePlay = () => {
+      const s = parseInt(seasonSelect.value || '1', 10);
+      const e = parseInt(episodeSelect.value || '1', 10);
+      playBtn.dataset.s = s; playBtn.dataset.e = e;
+    };
+    seasonSelect.onchange = async () => { await loadEpisodes(item.id, seasonSelect.value); updatePlay(); };
+    episodeSelect.onchange = updatePlay;
+    updatePlay();
 
-  playBtn.onclick = (e) => {
-    e.preventDefault();
-    const s = Number(playBtn.dataset.s || 1);
-    const ep = Number(playBtn.dataset.e || 1);
-    closeModal(); // hide modal
-    openPlayer(item.id, (item.name || item.title || 'TV Show'), s, ep); // 👉 opens overlay with Auto-Next
-  };
-} else {
-  // movie: hide controls & simple Play (unchanged)
-  tvControls.style.display = 'none';
-  playBtn.onclick = () => { window.location.href = `https://vidsrc.xyz/embed/movie/${item.id}`; };
-}
-
+    playBtn.onclick = (e) => {
+      e.preventDefault();
+      const s = Number(playBtn.dataset.s || 1);
+      const ep = Number(playBtn.dataset.e || 1);
+      closeModal();
+      openPlayer(item.id, (item.name || item.title || 'TV Show'), s, ep);
+    };
+  } else {
+    tvControls.style.display = 'none';
+    playBtn.onclick = () => { window.location.href = `https://vidsrc.xyz/embed/movie/${item.id}`; };
+  }
 }
 
 function closeModal(){
   document.getElementById("modal").classList.remove("open");
-  // NEW: stop trailer playback if an iframe is mounted
   const trailerWrap = document.getElementById('trailerWrap');
   if(trailerWrap){ trailerWrap.innerHTML = ''; trailerWrap.style.display = 'none'; }
 }
-
 </script>
 
 <script>
@@ -668,7 +657,6 @@ function wireSearch(){
     if(!q){ list.style.display="none"; return; }
 
     try {
-      // fetch up to 3 pages of results (≈60 items)
       let allResults = [];
       for(let p=1; p<=3; p++){
         const url = `https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(q)}&page=${p}&include_adult=false`;
@@ -680,7 +668,6 @@ function wireSearch(){
         if(p >= (data.total_pages || 1)) break;
       }
 
-      // build suggestion list
       list.innerHTML = "";
       allResults.forEach(item=>{
         if(!item.title && !item.name) return;
@@ -705,7 +692,6 @@ function wireSearch(){
     }
   });
 
-  // hide when clicking outside
   document.addEventListener("click",(e)=>{
     if(!list.contains(e.target) && e.target!==box){
       list.style.display="none";
@@ -713,8 +699,6 @@ function wireSearch(){
   });
 }
 </script>
-
-
 
 </body>
 </html>
