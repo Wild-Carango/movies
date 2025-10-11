@@ -798,24 +798,35 @@ function wireSearch(){
 }
 </script>
 <script>
-function triggerSilkHide() {
-  window.scrollTo(0, 1);
-  window.scrollTo(0, 0);
-}
-window.addEventListener('load', () => {
-  // Try once right after page load
-  setTimeout(triggerSilkHide, 600);
+(function(){
+  // 1) Make page just barely scrollable so Silk allows a real scroll
+  const prevMin = document.body.style.minHeight;
+  document.body.style.minHeight = '101vh';
 
-  // Also trigger on any mouse move, touch, or click (Firestick remote counts as mousemove)
-  ['mousemove','touchstart','click'].forEach(evt => {
-    window.addEventListener(evt, () => {
-      triggerSilkHide();
-    }, { once: true });
-  });
-});
+  function triggerOnce() {
+    // Do a tiny real scroll to make Silk hide its bars
+    window.scrollBy(0, 2);
+    setTimeout(() => { window.scrollBy(0, -2); }, 0);
+
+    // Cleanup: restore min-height and remove listeners
+    document.body.style.minHeight = prevMin;
+    ['pointermove','touchstart','click','wheel','keydown'].forEach(evt =>
+      window.removeEventListener(evt, triggerOnce, {passive:true})
+    );
+  }
+
+  // 2) Try once shortly after load (some builds honor this)
+  window.addEventListener('load', () => setTimeout(triggerOnce, 500), {once:true});
+
+  // 3) Guarantee it on first user interaction (remote/mouse/tap/scroll/key)
+  ['pointermove','touchstart','click','wheel','keydown'].forEach(evt =>
+    window.addEventListener(evt, triggerOnce, {passive:true, once:true})
+  );
+})();
 </script>
   
 </body>
 </html>
+
 
 
