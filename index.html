@@ -108,12 +108,39 @@
 
   /* #LABEL: PlayerOverlayStyles */
   .player-overlay{position:fixed; inset:0; background:#000; display:none; z-index:9999;}
-  .player-overlay.open{display:grid; grid-template-rows:auto 1fr}
-  .player-bar{display:flex; gap:10px; align-items:center; padding:10px 12px; background:#0f0f0f; border-bottom:1px solid #222; color:#fff}
-  .player-bar .spacer{flex:1}
-  .player-bar button, .player-bar input[type="checkbox"]{cursor:pointer}
-  .player-frame{width:100%; height:100%; border:0}
-  .badge-lite{background:#222; padding:4px 8px; border-radius:999px; font-size:12px}
+  .player-overlay.open{display:block;}
+
+  /* iframe fills the entire overlay — always gets clicks by default */
+  .player-frame{position:absolute; inset:0; width:100%; height:100%; border:0; z-index:1;}
+
+  /* control bar floats on top — only the bar strip itself blocks clicks, nothing else */
+  .player-bar{
+    position:absolute; top:0; left:0; right:0; z-index:2;
+    display:flex; gap:10px; align-items:center;
+    padding:8px 16px;
+    background:linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 100%);
+    color:#fff;
+    opacity:0;
+    transition: opacity 0.3s ease;
+    /* bar itself never blocks pointer events — only the buttons inside do */
+    pointer-events:none;
+  }
+  /* show bar only when controls-visible class is active (JS-controlled) */
+  .player-overlay.controls-visible .player-bar {
+    opacity:1;
+  }
+  /* only the interactive elements inside the bar capture clicks */
+  .player-bar button,
+  .player-bar label,
+  .player-bar input[type="checkbox"],
+  .player-bar .badge-lite,
+  .player-bar .timer,
+  .player-bar .credits-prompt {
+    pointer-events:auto;
+    cursor:pointer;
+  }
+  .player-bar .spacer{ flex:1; pointer-events:none; }
+  .badge-lite{background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:999px; font-size:12px}
   .timer{min-width:92px; text-align:center; font-variant-numeric:tabular-nums}
 
   /* Credits controls */
@@ -655,21 +682,53 @@ async function playPrev(){
   await loadEpisode(curTV.id, p.s, p.e);
 }
 
+/* Auto-hide controls timer */
+let controlsHideTimer = null;
+function showControls(){
+  playerEl.wrap.classList.add('controls-visible');
+  clearTimeout(controlsHideTimer);
+  controlsHideTimer = setTimeout(() => playerEl.wrap.classList.remove('controls-visible'), 3000);
+}
+
 function openPlayer(tvId, title, s, e){
   skipCredits = true;
   hideCreditsPrompt();
   curTV = { id:tvId, season:s, episode:e, episodeCountBySeason:new Map(), title:title||'' };
   playerEl.title.textContent = title || 'Playing';
   playerEl.wrap.classList.add('open');
+
+  // Show controls briefly on open, then auto-hide
+  showControls();
+
+  // Re-show controls on any mouse movement over the overlay
+  playerEl.wrap.addEventListener('mousemove', showControls);
+
+  // Request fullscreen immediately while still inside the click handler
+  const el = playerEl.wrap;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  else if (el.msRequestFullscreen) el.msRequestFullscreen();
+
   loadEpisode(tvId, s, e);
 }
 
 function closePlayer(){
   hideCreditsPrompt();
   playerEl.wrap.classList.remove('open');
+  playerEl.wrap.classList.remove('controls-visible');
+  playerEl.wrap.removeEventListener('mousemove', showControls);
+  clearTimeout(controlsHideTimer);
   playerEl.frame.src = 'about:blank';
   playerEl.timer.textContent = '--:--';
   stopCountdown();
+
+  // Exit fullscreen if currently active
+  if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
+  }
 }
 
 /* wire player controls */
@@ -827,7 +886,3 @@ function wireSearch(){
   
 </body>
 </html>
-
-
-
-
