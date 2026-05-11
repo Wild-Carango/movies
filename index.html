@@ -466,7 +466,7 @@ const episodeSelect = document.getElementById('episodeSelect');
 
 function vidsrcTvUrl(tvId, season, episode){
   const s = season ?? 1, e = episode ?? 1;
-  return `https://vidsrc.xyz/embed/tv/${tvId}?season=${s}&episode=${e}`;
+  return `https://vsembed.ru/embed/tv/${tvId}?season=${s}&episode=${e}`;
 }
 
 async function loadSeasons(tvId){
@@ -554,7 +554,7 @@ let skipCredits = true; // default: skip end credits
 let totalSec = 0;       // episode runtime in seconds
 let graceLeft = 0;      // 10s grace window once credits start (estimated)
 
-function vidsrcTv(tvId, s, e){ return `https://vidsrc.xyz/embed/tv/${tvId}?season=${s}&episode=${e}`; }
+function vidsrcTv(tvId, s, e){ return `https://vsembed.ru/embed/tv/${tvId}?season=${s}&episode=${e}`; }
 
 async function getSeasonEpisodeCount(tvId, seasonNumber){
   if (curTV.episodeCountBySeason.has(seasonNumber)) return curTV.episodeCountBySeason.get(seasonNumber);
@@ -793,7 +793,7 @@ function openModal(item, type){
   } else {
     // movie: hide controls & simple Play (unchanged)
     tvControls.style.display = 'none';
-    playBtn.onclick = () => { window.location.href = `https://vidsrc.xyz/embed/movie/${item.id}`; };
+    playBtn.onclick = () => { window.location.href = `https://vsembed.ru/embed/movie/${item.id}`; };
   }
 }
 
