@@ -138,17 +138,17 @@
   .player-bar{
     position:absolute; top:0; left:0; right:0; z-index:2;
     display:flex; gap:10px; align-items:center;
-    padding:8px 16px;
+    padding:14px 20px 28px;
     background:linear-gradient(to bottom, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0) 100%);
     color:#fff;
     opacity:0;
     transition: opacity 0.3s ease;
-    /* bar itself never blocks pointer events — only the buttons inside do */
     pointer-events:none;
   }
   /* show bar only when controls-visible class is active (JS-controlled) */
   .player-overlay.controls-visible .player-bar {
     opacity:1;
+    pointer-events:auto;
   }
   .player-overlay:not(.controls-visible) .player-bar button,
   .player-overlay:not(.controls-visible) .player-bar .badge-lite{
@@ -160,6 +160,27 @@
     pointer-events:auto;
     cursor:pointer;
   }
+  .player-bar button{
+    min-width:96px;
+    min-height:48px;
+    padding:10px 16px;
+    border:3px solid transparent;
+    border-radius:10px;
+    background:#f2f2f2;
+    color:#111;
+    font-size:18px;
+    font-weight:750;
+  }
+  .player-bar button:focus,
+  .player-bar button.remote-focus{
+    outline:3px solid #fff;
+    outline-offset:3px;
+    border-color:#111;
+    background:var(--accent);
+    color:#fff;
+    transform:scale(1.06);
+  }
+  .player-bar button:disabled{opacity:.55;transform:none}
   .player-bar .spacer{ flex:1; pointer-events:none; }
   .badge-lite{background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:999px; font-size:12px}
 </style>
@@ -297,15 +318,16 @@
 
 <!-- #LABEL: PlayerOverlay -->
 <div id="playerOverlay" class="player-overlay" aria-label="Episode Player">
-  <div class="player-bar">
+  <div class="player-bar" role="toolbar" aria-label="Episode controls">
     <strong id="playerTitle">Playing</strong>
     <span class="badge-lite" id="playerBadge"></span>
     <span class="spacer"></span>
-    <button id="prevEpBtn">⟨ Prev</button>
-    <button id="nextEpBtn">Next ⟩</button>
-    <button id="closePlayerBtn" class="btn secondary" style="margin-left:8px;">Exit</button>
+    <button type="button" id="prevEpBtn" aria-label="Previous episode">⟨ Prev</button>
+    <button type="button" id="nextEpBtn" aria-label="Next episode">Next ⟩</button>
+    <button type="button" id="closePlayerBtn" class="btn secondary" style="margin-left:8px;" aria-label="Exit player">Exit</button>
   </div>
-  <iframe id="playerFrame" class="player-frame" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+  <iframe id="playerFrame" class="player-frame" tabindex="-1" title="Video player"
+    allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
 </div>
 
 <script>
@@ -1353,6 +1375,7 @@ function wireModalAndKeyboard(){
 /*** MANUAL TV PLAYER — PREVIOUS, NEXT, EXIT ***/
 const playerEl = {
   wrap:byId("playerOverlay"),
+  bar:byId("playerOverlay").querySelector(".player-bar"),
   frame:byId("playerFrame"),
   title:byId("playerTitle"),
   badge:byId("playerBadge"),
@@ -1362,6 +1385,75 @@ const playerEl = {
 };
 let curTV = { id:null,season:1,episode:1,episodeCountBySeason:new Map(),title:"",item:null };
 let controlsHideTimer = null;
+let playerControlIndex = 1;
+
+function playerControls(){
+  return [playerEl.prev,playerEl.next,playerEl.exit];
+}
+
+function focusPlayerControl(index=playerControlIndex){
+  const controls = playerControls();
+  playerControlIndex = Math.max(0,Math.min(index,controls.length - 1));
+  controls.forEach((control,controlIndex)=>{
+    control.classList.toggle("remote-focus",controlIndex === playerControlIndex);
+  });
+  const target = controls[playerControlIndex];
+  if(target && !target.disabled){
+    try{ target.focus({ preventScroll:true }); }
+    catch(error){ target.focus(); }
+  }
+  showControls();
+}
+
+function movePlayerFocus(direction){
+  const controls = playerControls();
+  let nextIndex = playerControlIndex;
+  do{
+    nextIndex = (nextIndex + direction + controls.length) % controls.length;
+  }while(controls[nextIndex].disabled && nextIndex !== playerControlIndex);
+  focusPlayerControl(nextIndex);
+}
+
+function isPlayerBackKey(event){
+  return event.key === "Escape" ||
+    event.key === "BrowserBack" ||
+    event.key === "GoBack" ||
+    event.keyCode === 4 ||
+    event.keyCode === 8 ||
+    event.keyCode === 27;
+}
+
+function handlePlayerRemoteKey(event){
+  if(!playerEl.wrap.classList.contains("open")) return;
+  const code = event.keyCode || event.which;
+
+  if(isPlayerBackKey(event)){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closePlayer();
+    return;
+  }
+
+  if(event.key === "ArrowLeft" || code === 37){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    movePlayerFocus(-1);
+  }else if(event.key === "ArrowRight" || code === 39){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    movePlayerFocus(1);
+  }else if(event.key === "ArrowUp" || event.key === "ArrowDown" || code === 38 || code === 40){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    focusPlayerControl();
+  }else if(event.key === "Enter" || code === 13){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const active = document.activeElement;
+    if(playerControls().includes(active) && !active.disabled) active.click();
+    else focusPlayerControl();
+  }
+}
 
 function vidsrcTv(tvId,season,episode){
   return `https://vsembed.ru/embed/tv/${tvId}?season=${season}&episode=${episode}`;
@@ -1426,8 +1518,10 @@ async function playNext(){
     loadEpisode(curTV.id,pair.s,pair.e);
   }catch(error){
     console.error(error);
+    playerEl.badge.textContent += " • Next episode unavailable";
   }finally{
     playerEl.next.disabled = false;
+    focusPlayerControl(1);
   }
 }
 
@@ -1438,8 +1532,10 @@ async function playPrev(){
     if(pair) loadEpisode(curTV.id,pair.s,pair.e);
   }catch(error){
     console.error(error);
+    playerEl.badge.textContent += " • Previous episode unavailable";
   }finally{
     playerEl.prev.disabled = false;
+    focusPlayerControl(0);
   }
 }
 
@@ -1447,8 +1543,10 @@ function showControls(){
   playerEl.wrap.classList.add("controls-visible");
   clearTimeout(controlsHideTimer);
   controlsHideTimer = setTimeout(()=>{
-    playerEl.wrap.classList.remove("controls-visible");
-  },3500);
+    if(!playerEl.bar.contains(document.activeElement)){
+      playerEl.wrap.classList.remove("controls-visible");
+    }
+  },6000);
 }
 
 function openPlayer(item,season,episode){
@@ -1463,7 +1561,7 @@ function openPlayer(item,season,episode){
   playerEl.title.textContent = mediaTitle(item);
   playerEl.wrap.classList.add("open");
   document.body.classList.add("modal-open");
-  ["mousemove","click","touchstart","keydown"].forEach(eventName=>
+  ["mousemove","click","touchstart"].forEach(eventName=>
     playerEl.wrap.addEventListener(eventName,showControls)
   );
   showControls();
@@ -1471,23 +1569,35 @@ function openPlayer(item,season,episode){
   const fullscreenTarget = playerEl.wrap;
   if(fullscreenTarget.requestFullscreen) fullscreenTarget.requestFullscreen().catch(()=>{});
   else if(fullscreenTarget.webkitRequestFullscreen) fullscreenTarget.webkitRequestFullscreen();
+  setTimeout(()=>focusPlayerControl(1),150);
 }
 
 function closePlayer(){
   playerEl.wrap.classList.remove("open","controls-visible");
   document.body.classList.remove("modal-open");
-  ["mousemove","click","touchstart","keydown"].forEach(eventName=>
+  ["mousemove","click","touchstart"].forEach(eventName=>
     playerEl.wrap.removeEventListener(eventName,showControls)
   );
   clearTimeout(controlsHideTimer);
+  playerControls().forEach(control=>control.classList.remove("remote-focus"));
   playerEl.frame.src = "about:blank";
   if(document.fullscreenElement && document.exitFullscreen){
     document.exitFullscreen().catch(()=>{});
   }else if(document.webkitFullscreenElement && document.webkitExitFullscreen){
     document.webkitExitFullscreen();
   }
+  setTimeout(()=>{
+    if(lastFocusedElement?.focus) lastFocusedElement.focus();
+  },0);
 }
 
+window.addEventListener("keydown",handlePlayerRemoteKey,true);
+playerEl.bar.addEventListener("focusin",showControls);
+playerEl.frame.addEventListener("load",()=>{
+  if(playerEl.wrap.classList.contains("open")){
+    setTimeout(()=>focusPlayerControl(playerControlIndex),50);
+  }
+});
 playerEl.exit.addEventListener("click",closePlayer);
 playerEl.next.addEventListener("click",playNext);
 playerEl.prev.addEventListener("click",playPrev);
